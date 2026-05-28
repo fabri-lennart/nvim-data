@@ -4,20 +4,35 @@ return {
 	-- COLORSCHEME
 	-- =====================
 	{
-		"ellisonleao/gruvbox.nvim",
+		"catppuccin/nvim",
+		name = "catppuccin",
 		priority = 1000,
 		config = function()
-			require("gruvbox").setup({
-				contrast = "hard",
-				transparent_mode = false,
-				italic = {
-					strings = false,
-					comments = true,
-					operators = false,
-					folds = true,
+			require("catppuccin").setup({
+				flavour = "mocha", -- opciones: latte, frappe, macchiato, mocha
+				transparent_background = false,
+				term_colors = true,
+				styles = {
+					comments = { "italic" }, -- igual que tenias en gruvbox
+					folds = { "italic" },
+					operators = {},
+					strings = {},
+				},
+				integrations = {
+					neotree = true,
+					alpha = true,
+					treesitter = true,
+					telescope = true,
+					gitsigns = true,
+					cmp = true,
+					mason = true,
+					dap = true,
+					dap_ui = true,
+					native_lsp = { enabled = true },
+					indent_blankline = { enabled = true },
 				},
 			})
-			vim.cmd("colorscheme gruvbox")
+			vim.cmd.colorscheme("catppuccin")
 		end,
 	},
 
@@ -30,7 +45,7 @@ return {
 		config = function()
 			require("lualine").setup({
 				options = {
-					theme = "gruvbox",
+					theme = "catppuccin",
 					component_separators = "|",
 					section_separators = { left = "", right = "" },
 					globalstatus = true,
@@ -66,7 +81,7 @@ return {
 					diagnostics = "nvim_lsp",
 					offsets = {
 						{
-							filetype = "yazi",
+							filetype = "neo-tree",
 							text = "File Explorer",
 							highlight = "Directory",
 							separator = true,
@@ -127,6 +142,12 @@ return {
 			local alpha = require("alpha")
 			local dashboard = require("alpha.themes.dashboard")
 
+			-- Colores del dashboard con la paleta de catppuccin
+			local colors = require("catppuccin.palettes").get_palette("mocha")
+			vim.api.nvim_set_hl(0, "AlphaHeader", { fg = colors.green })
+			vim.api.nvim_set_hl(0, "AlphaButtons", { fg = colors.peach })
+			vim.api.nvim_set_hl(0, "AlphaFooter", { fg = colors.yellow })
+
 			dashboard.section.header.val = {
 				"",
 				"  ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗",
@@ -150,9 +171,9 @@ return {
 
 			dashboard.section.footer.val = "fabri's data engineering IDE"
 
-			dashboard.section.header.opts.hl = "GruvboxGreen"
-			dashboard.section.buttons.opts.hl = "GruvboxOrange"
-			dashboard.section.footer.opts.hl = "GruvboxYellow"
+			dashboard.section.header.opts.hl = "AlphaHeader"
+			dashboard.section.buttons.opts.hl = "AlphaButtons"
+			dashboard.section.footer.opts.hl = "AlphaFooter"
 
 			alpha.setup(dashboard.opts)
 
@@ -173,6 +194,39 @@ return {
 					vim.opt.laststatus = 3
 				end,
 			})
+		end,
+	},
+
+	-- =====================
+	-- FILE EXPLORER (NEO-TREE, lado derecho)
+	-- =====================
+	{
+		"nvim-neo-tree/neo-tree.nvim",
+		branch = "v3.x",
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+			"nvim-tree/nvim-web-devicons",
+			"MunifTanjim/nui.nvim",
+		},
+		config = function()
+			require("neo-tree").setup({
+				close_if_last_window = true,
+				window = {
+					position = "right", -- explorador en el lado derecho
+					width = 35,
+				},
+				filesystem = {
+					follow_current_file = { enabled = true },
+					use_libuv_file_watcher = true,
+					filtered_items = {
+						hide_dotfiles = false,
+						hide_gitignored = false,
+					},
+				},
+			})
+
+			-- Toggle del explorador (Espacio + e)
+			vim.keymap.set("n", "<leader>e", "<cmd>Neotree toggle<cr>", { desc = "Explorer (Neo-tree)" })
 		end,
 	},
 }

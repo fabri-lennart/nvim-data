@@ -56,29 +56,6 @@ return {
 	},
 
 	-- =====================
-	-- FILE EXPLORER (yazi TUI)
-	-- =====================
-	{
-		"mikavilpas/yazi.nvim",
-		dependencies = { "nvim-lua/plenary.nvim" },
-		event = "VeryLazy",
-		config = function()
-			require("yazi").setup({
-				open_for_directories = true,
-				floating_window_scaling_factor = 0.8,
-				yazi_floating_window_border = "rounded",
-			})
-
-			local map = vim.keymap.set
-			local opts = { noremap = true, silent = true }
-
-			map("n", "<leader>e", "<cmd>Yazi<cr>", opts)
-			map("n", "<leader>ew", "<cmd>Yazi cwd<cr>", opts)
-			map("n", "<leader>er", "<cmd>Yazi toggle<cr>", opts)
-		end,
-	},
-
-	-- =====================
 	-- SYNTAX PARSING
 	-- =====================
 	{

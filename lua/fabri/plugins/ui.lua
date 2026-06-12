@@ -4,35 +4,20 @@ return {
 	-- COLORSCHEME
 	-- =====================
 	{
-		"catppuccin/nvim",
-		name = "catppuccin",
+		"ellisonleao/gruvbox.nvim",
 		priority = 1000,
 		config = function()
-			require("catppuccin").setup({
-				flavour = "mocha", -- opciones: latte, frappe, macchiato, mocha
-				transparent_background = false,
-				term_colors = true,
-				styles = {
-					comments = { "italic" }, -- igual que tenias en gruvbox
-					folds = { "italic" },
-					operators = {},
-					strings = {},
-				},
-				integrations = {
-					neotree = true,
-					alpha = true,
-					treesitter = true,
-					telescope = true,
-					gitsigns = true,
-					cmp = true,
-					mason = true,
-					dap = true,
-					dap_ui = true,
-					native_lsp = { enabled = true },
-					indent_blankline = { enabled = true },
+			require("gruvbox").setup({
+				contrast = "hard",
+				transparent_mode = false,
+				italic = {
+					strings = false,
+					comments = true,
+					operators = false,
+					folds = true,
 				},
 			})
-			vim.cmd.colorscheme("catppuccin")
+			vim.cmd.colorscheme("gruvbox")
 		end,
 	},
 
@@ -45,7 +30,7 @@ return {
 		config = function()
 			require("lualine").setup({
 				options = {
-					theme = "catppuccin",
+					theme = "gruvbox",
 					component_separators = "|",
 					section_separators = { left = "", right = "" },
 					globalstatus = true,
@@ -143,10 +128,9 @@ return {
 			local dashboard = require("alpha.themes.dashboard")
 
 			-- Colores del dashboard con la paleta de catppuccin
-			local colors = require("catppuccin.palettes").get_palette("mocha")
-			vim.api.nvim_set_hl(0, "AlphaHeader", { fg = colors.green })
-			vim.api.nvim_set_hl(0, "AlphaButtons", { fg = colors.peach })
-			vim.api.nvim_set_hl(0, "AlphaFooter", { fg = colors.yellow })
+			vim.api.nvim_set_hl(0, "AlphaHeader", { fg = "#b8bb26" })
+			vim.api.nvim_set_hl(0, "AlphaButtons", { fg = "#fe8019" })
+			vim.api.nvim_set_hl(0, "AlphaFooter", { fg = "#fabd2f" })
 
 			dashboard.section.header.val = {
 				"",

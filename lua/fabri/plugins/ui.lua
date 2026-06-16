@@ -159,7 +159,40 @@ return {
 			dashboard.section.buttons.opts.hl = "AlphaButtons"
 			dashboard.section.footer.opts.hl = "AlphaFooter"
 
+			-- Centrar el dashboard verticalmente (padding superior dinámico)
+			local function alpha_content_height()
+				local h = 0
+				for i = 2, #dashboard.opts.layout do
+					local el = dashboard.opts.layout[i]
+					if el.type == "padding" then
+						h = h + (type(el.val) == "function" and el.val() or el.val)
+					elseif el.type == "text" then
+						h = h + (type(el.val) == "table" and #el.val or 1)
+					elseif el.type == "group" then
+						local n = #el.val
+						local sp = (el.opts and el.opts.spacing) or 0
+						h = h + n + math.max(0, n - 1) * sp
+					else
+						h = h + 1
+					end
+				end
+				return h
+			end
+
+			dashboard.opts.layout[1].val = function()
+				return math.max(1, math.floor((vim.api.nvim_win_get_height(0) - alpha_content_height()) / 2))
+			end
+
 			alpha.setup(dashboard.opts)
+
+			-- Re-centrar el dashboard al redimensionar la ventana
+			vim.api.nvim_create_autocmd("VimResized", {
+				callback = function()
+					if vim.bo.filetype == "alpha" then
+						vim.cmd("AlphaRedraw")
+					end
+				end,
+			})
 
 			-- Hide statusline and tabline on dashboard
 			vim.api.nvim_create_autocmd("User", {
@@ -167,6 +200,7 @@ return {
 				callback = function()
 					vim.opt.showtabline = 0
 					vim.opt.laststatus = 0
+					vim.cmd("AlphaRedraw")
 				end,
 			})
 

@@ -29,6 +29,7 @@ return {
 		config = function()
 			require("mason-lspconfig").setup({
 				ensure_installed = {
+                                        "gh_actions_ls", -- GitHub Actions
 					"pyright", -- Python
 					"gopls", -- Go
 					"lua_ls", -- Lua
@@ -122,6 +123,7 @@ return {
 
 			-- Enable all servers
 			vim.lsp.enable({
+                                "gh_actions_ls",
 				"pyright",
 				"gopls",
 				"lua_ls",
@@ -151,6 +153,7 @@ return {
 					tf = "terraform",
 				},
 				pattern = {
+                                        [".*/%.github/workflows/.*%.ya?ml"] = "yaml.github",
 					[".*/.dbt/.*%.sql"] = "jinja",
 					[".*/models/.*%.sql"] = "jinja",
 					[".*/macros/.*%.sql"] = "jinja",

@@ -186,6 +186,7 @@ return {
 					bash = { "shfmt" },
 					terraform = { "terraform_fmt" },
 					yaml = { "prettier" },
+                                        ["yaml.github"] = { "prettier" },
 					json = { "prettier" },
 				},
 				format_on_save = {

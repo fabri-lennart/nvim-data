@@ -82,6 +82,107 @@ local function molten_insert_cell()
 	vim.cmd("normal! j")
 end
 
+-- ─────────────────────────────────────────────────────────────────────
+-- Crear un .ipynb NUEVO ya bien formado (con kernelspec elegido por vos).
+-- Así, si lo compartís, Jupyter lo reconoce sin problemas y no dependés
+-- del parche defensivo de jupytext. Flujo:
+--   1) lista los kernels instalados  (jupyter kernelspec list --json)
+--   2) elegís uno en un menú
+--   3) pedís nombre de archivo
+--   4) escribe un notebook mínimo VÁLIDO (nbformat 4) con ese kernelspec
+--   5) lo abre → jupytext lo muestra como Python con celdas "# %%"
+-- ─────────────────────────────────────────────────────────────────────
+local function jupyter_new_notebook()
+	-- 1) Kernels disponibles.
+	local out = vim.fn.system({ "jupyter", "kernelspec", "list", "--json" })
+	if vim.v.shell_error ~= 0 then
+		vim.notify("No pude listar kernels. ¿Está jupyter instalado?  pip install jupyter", vim.log.levels.ERROR)
+		return
+	end
+	local ok, data = pcall(vim.json.decode, out)
+	if not ok or type(data) ~= "table" or type(data.kernelspecs) ~= "table" then
+		vim.notify("No pude leer la lista de kernels de jupyter.", vim.log.levels.ERROR)
+		return
+	end
+
+	local kernels = {}
+	for name, info in pairs(data.kernelspecs) do
+		local spec = (info and info.spec) or {}
+		table.insert(kernels, {
+			name = name,
+			display = spec.display_name or name,
+			language = spec.language or "python",
+		})
+	end
+	if #kernels == 0 then
+		vim.notify("No hay kernels instalados. Probá:  python -m ipykernel install --user", vim.log.levels.ERROR)
+		return
+	end
+	table.sort(kernels, function(a, b)
+		return a.display < b.display
+	end)
+
+	-- 2) Elegir kernel.
+	vim.ui.select(kernels, {
+		prompt = "Kernel para el nuevo notebook:",
+		format_item = function(k)
+			return string.format("%s  (%s)", k.display, k.name)
+		end,
+	}, function(kernel)
+		if not kernel then
+			return -- cancelado
+		end
+		-- 3) Nombre del archivo.
+		vim.ui.input({ prompt = "Nombre del notebook: ", default = "nuevo.ipynb" }, function(fname)
+			if not fname or fname == "" then
+				return
+			end
+			if not fname:match("%.ipynb$") then
+				fname = fname .. ".ipynb"
+			end
+			if vim.fn.filereadable(fname) == 1 then
+				vim.notify("Ya existe: " .. fname, vim.log.levels.WARN)
+				return
+			end
+
+			-- 4) Notebook mínimo válido (nbformat 4.4: no requiere ids de celda).
+			local nb = {
+				cells = {
+					{
+						cell_type = "code",
+						execution_count = vim.NIL,
+						metadata = vim.empty_dict(),
+						outputs = {},
+						source = {},
+					},
+				},
+				metadata = {
+					kernelspec = {
+						display_name = kernel.display,
+						language = kernel.language,
+						name = kernel.name,
+					},
+					language_info = { name = kernel.language },
+				},
+				nbformat = 4,
+				nbformat_minor = 4,
+			}
+
+			local f = io.open(fname, "w")
+			if not f then
+				vim.notify("No pude crear el archivo: " .. fname, vim.log.levels.ERROR)
+				return
+			end
+			f:write(vim.json.encode(nb))
+			f:close()
+
+			-- 5) Abrirlo: jupytext toma el control y lo muestra con celdas "# %%".
+			vim.cmd.edit(vim.fn.fnameescape(fname))
+			vim.notify(string.format("Notebook creado con kernel «%s».", kernel.display))
+		end)
+	end)
+end
+
 return {
 
 	-- =====================
@@ -291,6 +392,13 @@ return {
 				style = "percent", -- celdas delimitadas por "# %%"
 				output_extension = "auto",
 				force_ft = nil,
+			})
+
+			-- Atajo global (siempre disponible, no solo en buffers python):
+			-- crea un .ipynb nuevo eligiendo kernel → queda bien formado.
+			-- Nota: <leader>jn (minúscula) es "celda siguiente", por eso "jN".
+			vim.keymap.set("n", "<leader>jN", jupyter_new_notebook, {
+				desc = "Jupyter: NUEVO notebook (.ipynb) + elegir kernel",
 			})
 		end,
 	},

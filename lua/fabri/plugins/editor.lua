@@ -1,3 +1,7 @@
+-- =====================================================================
+-- EDITOR  —  búsqueda, sintaxis y utilidades de edición
+-- (which-key -> whichkey.lua ; toggleterm -> terminal.lua ; conform -> lsp.lua)
+-- =====================================================================
 return {
 
 	-- =====================
@@ -44,14 +48,16 @@ return {
 			})
 
 			local map = vim.keymap.set
-			local opts = { noremap = true, silent = true }
+			local function o(desc)
+				return { noremap = true, silent = true, desc = desc }
+			end
 
-			map("n", "<leader>ff", "<cmd>Telescope find_files<cr>", opts)
-			map("n", "<leader>fg", "<cmd>Telescope live_grep<cr>", opts)
-			map("n", "<leader>fb", "<cmd>Telescope buffers<cr>", opts)
-			map("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", opts)
-			map("n", "<leader>fr", "<cmd>Telescope oldfiles<cr>", opts)
-			map("n", "<leader>fc", "<cmd>Telescope grep_string<cr>", opts)
+			map("n", "<leader>ff", "<cmd>Telescope find_files<cr>", o("Buscar archivos"))
+			map("n", "<leader>fg", "<cmd>Telescope live_grep<cr>", o("Buscar texto (grep)"))
+			map("n", "<leader>fb", "<cmd>Telescope buffers<cr>", o("Buscar buffers"))
+			map("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", o("Buscar en la ayuda"))
+			map("n", "<leader>fr", "<cmd>Telescope oldfiles<cr>", o("Archivos recientes"))
+			map("n", "<leader>fc", "<cmd>Telescope grep_string<cr>", o("Buscar palabra bajo cursor"))
 		end,
 	},
 
@@ -78,122 +84,13 @@ return {
 					"markdown",
 					"markdown_inline",
 					"csv",
-					"hcl",
-					"jinja",
+					"hcl", -- Terraform
+					"jinja", -- dbt / Airflow templates
 				},
 				auto_install = true,
 				highlight = { enable = true },
 				indent = { enable = true },
 			})
-		end,
-	},
-
-	-- =====================
-	-- KEYMAP GUIDE
-	-- =====================
-	{
-		"folke/which-key.nvim",
-		event = "VeryLazy",
-		config = function()
-			local wk = require("which-key")
-
-			wk.setup({
-				preset = "modern",
-				-- Pop up the hint window the instant <leader> (space) is pressed
-				delay = 0,
-			})
-
-			wk.add({
-				-- Leader groups (with icons for a cleaner popup)
-				{ "<leader>f", group = "find", icon = "" },
-				{ "<leader>s", group = "splits", icon = "" },
-				{ "<leader>g", group = "git", icon = "" },
-				{ "<leader>d", group = "debug", icon = "" },
-				{ "<leader>b", group = "database", icon = "" },
-				{ "<leader>l", group = "lsp", icon = "" },
-				{ "<leader>t", group = "terminal", icon = "" },
-				{ "<leader>a", group = "ai", icon = "󰚩" },
-				{ "<leader>e", group = "explorer", icon = "" },
-				{ "<leader>u", group = "ui / toggles", icon = "" },
-				{ "<leader>c", group = "code / formato", icon = "" },
-				{ "<leader>m", group = "dbt / markdown", icon = "" },
-				{ "<leader>R", group = "http (kulala)", icon = "󱂛" },
-
-				-- Splits: create + resize kept together under <leader>s
-				{ "<leader>sv", desc = "Split vertically", icon = "" },
-				{ "<leader>sh", desc = "Split horizontally", icon = "" },
-
-				-- Debug (nvim-dap) — iconografía limpia para el menú flotante
-				{ "<leader>dt", desc = "Toggle breakpoint", icon = "" },
-				{ "<leader>dc", desc = "Continuar / iniciar", icon = "" },
-				{ "<leader>di", desc = "Step into (entrar)", icon = "" },
-				{ "<leader>do", desc = "Step over (siguiente)", icon = "" },
-				{ "<leader>dO", desc = "Step out (salir)", icon = "" },
-				{ "<leader>dr", desc = "Abrir REPL / consola", icon = "" },
-				{ "<leader>dB", desc = "Breakpoint condicional", icon = "" },
-				{ "<leader>dP", desc = "Log point", icon = "" },
-				{ "<leader>dx", desc = "Terminar sesión", icon = "" },
-				{ "<leader>du", desc = "Panel de debug (UI)", icon = "" },
-
-				-- Window navigation (Ctrl+hjkl) — always visible as a hint group.
-				-- Registered as a documentation group so pressing <C-w> or browsing
-				-- with :WhichKey surfaces the split movement/resize combos.
-				{
-					mode = { "n" },
-					{ "<C-h>", desc = "Window: move left", icon = "" },
-					{ "<C-j>", desc = "Window: move down", icon = "" },
-					{ "<C-k>", desc = "Window: move up", icon = "" },
-					{ "<C-l>", desc = "Window: move right", icon = "" },
-					{ "<C-Up>", desc = "Window: taller", icon = "" },
-					{ "<C-Down>", desc = "Window: shorter", icon = "" },
-					{ "<C-Left>", desc = "Window: narrower", icon = "" },
-					{ "<C-Right>", desc = "Window: wider", icon = "" },
-				},
-			})
-		end,
-	},
-
-	-- =====================
-	-- TERMINAL + LAZYDOCKER
-	-- =====================
-	{
-		"akinsho/toggleterm.nvim",
-		version = "*",
-		config = function()
-			require("toggleterm").setup({
-				size = function(term)
-					if term.direction == "horizontal" then
-						return 15
-					elseif term.direction == "vertical" then
-						return vim.o.columns * 0.4
-					end
-				end,
-				open_mapping = [[<C-\>]],
-				direction = "float",
-				float_opts = { border = "curved" },
-				shade_terminals = true,
-			})
-
-			local map = vim.keymap.set
-			local opts = { noremap = true, silent = true }
-
-			map("n", "<leader>tf", "<cmd>ToggleTerm direction=float<cr>", opts)
-			map("n", "<leader>th", "<cmd>ToggleTerm direction=horizontal<cr>", opts)
-			map("n", "<leader>tv", "<cmd>ToggleTerm direction=vertical<cr>", opts)
-			map("t", "<Esc>", [[<C-\><C-n>]], opts)
-
-			-- LazyDocker floating terminal
-			local Terminal = require("toggleterm.terminal").Terminal
-			local lazydocker = Terminal:new({
-				cmd = "lazydocker",
-				hidden = true,
-				direction = "float",
-				float_opts = { border = "curved" },
-			})
-
-			map("n", "<leader>td", function()
-				lazydocker:toggle()
-			end, { noremap = true, silent = true, desc = "Open LazyDocker" })
 		end,
 	},
 
@@ -209,38 +106,6 @@ return {
 			local cmp_autopairs = require("nvim-autopairs.completion.cmp")
 			local cmp = require("cmp")
 			cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
-		end,
-	},
-
-	-- =====================
-	-- FORMAT ON SAVE
-	-- =====================
-	{
-		"stevearc/conform.nvim",
-		event = "BufWritePre",
-		config = function()
-			require("conform").setup({
-				formatters_by_ft = {
-					-- Ruff: sorts imports first, then formats (drop-in for black + isort)
-					python = { "ruff_organize_imports", "ruff_format" },
-					lua = { "stylua" },
-					sql = { "sqlfmt" },
-					sh = { "shfmt" },
-					bash = { "shfmt" },
-					terraform = { "terraform_fmt" },
-					yaml = { "prettier" },
-                                        ["yaml.github"] = { "prettier" },
-					json = { "prettier" },
-				},
-				format_on_save = {
-					timeout_ms = 500,
-					lsp_fallback = true,
-				},
-			})
-
-			vim.keymap.set({ "n", "v" }, "<leader>cf", function()
-				require("conform").format({ async = true, lsp_fallback = true })
-			end, { noremap = true, silent = true, desc = "Format file" })
 		end,
 	},
 
@@ -287,7 +152,7 @@ return {
 				"n",
 				"<leader>ft",
 				"<cmd>TodoTelescope<cr>",
-				{ noremap = true, silent = true, desc = "Find TODOs" }
+				{ noremap = true, silent = true, desc = "Buscar TODOs" }
 			)
 		end,
 	},

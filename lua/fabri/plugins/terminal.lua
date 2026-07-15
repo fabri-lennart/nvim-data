@@ -36,15 +36,8 @@ return {
 			-- Terminal flotante de propósito general
 			local float_term = Terminal:new({ direction = "float", hidden = true })
 
-			-- LazyGit (interfaz para commits, ramas, stash, etc.)
-			local lazygit = Terminal:new({
-				cmd = "lazygit",
-				direction = "float",
-				hidden = true,
-				on_open = function() vim.cmd("startinsert!") end,
-			})
-
-			-- LazyDocker (gestión visual de contenedores)
+			-- LazyDocker (gestión visual de contenedores, logs y volúmenes)
+			-- NOTA: LazyGit vive en git.lua (<leader>gg) para no duplicarlo.
 			local lazydocker = Terminal:new({
 				cmd = "lazydocker",
 				direction = "float",
@@ -54,16 +47,9 @@ return {
 
 			local map = vim.keymap.set
 			map("n", "<leader>tt", function() float_term:toggle() end, { desc = "Terminal flotante" })
-			map("n", "<leader>tg", function() lazygit:toggle() end, { desc = "LazyGit" })
 			map("n", "<leader>td", function() lazydocker:toggle() end, { desc = "LazyDocker (contenedores)" })
 			map("n", "<leader>th", "<cmd>ToggleTerm direction=horizontal<cr>", { desc = "Terminal horizontal" })
 			map("n", "<leader>tv", "<cmd>ToggleTerm direction=vertical<cr>", { desc = "Terminal vertical" })
-
-			-- Que el botón "LazyGit" del dashboard también funcione,
-			-- sin pisar el comando si ya lo provee otro plugin (git.lua)
-			if vim.fn.exists(":LazyGit") == 0 then
-				vim.api.nvim_create_user_command("LazyGit", function() lazygit:toggle() end, {})
-			end
 
 			-- Atajos cómodos dentro del modo terminal
 			local function set_terminal_keymaps()

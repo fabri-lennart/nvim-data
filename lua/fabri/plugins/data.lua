@@ -264,11 +264,35 @@ return {
 	{
 		"GCBallesteros/jupytext.nvim",
 		lazy = false,
-		opts = {
-			style = "percent", -- celdas delimitadas por "# %%"
-			output_extension = "auto",
-			force_ft = nil,
-		},
+		-- Usamos `config` (en vez de `opts`) para poder aplicar un parche
+		-- defensivo ANTES de arrancar el plugin.
+		config = function()
+			-- ── PARCHE: notebooks sin `kernelspec` ───────────────────────────
+			-- Algunos .ipynb (generados a mano o por scripts) vienen con
+			-- `"metadata": {}`, es decir SIN kernelspec. jupytext.nvim asume
+			-- que siempre existe y en utils.lua hace `metadata.kernelspec.language`,
+			-- por lo que al abrirlos revienta con:
+			--   attempt to index field 'kernelspec' (a nil value)
+			-- Envolvemos get_ipynb_metadata: si falta kernelspec/lenguaje,
+			-- asumimos Python (el caso normal de un datero) y seguimos.
+			-- Al vivir en NUESTRA config, sobrevive a `:Lazy update`.
+			local utils = require("jupytext.utils")
+			local get_metadata = utils.get_ipynb_metadata
+			utils.get_ipynb_metadata = function(filename)
+				local ok, meta = pcall(get_metadata, filename)
+				if ok and meta and meta.language and meta.extension then
+					return meta
+				end
+				-- Fallback: notebook sin kernelspec → lo tratamos como Python.
+				return { language = "python", extension = "py" }
+			end
+
+			require("jupytext").setup({
+				style = "percent", -- celdas delimitadas por "# %%"
+				output_extension = "auto",
+				force_ft = nil,
+			})
+		end,
 	},
 
 	-- =====================

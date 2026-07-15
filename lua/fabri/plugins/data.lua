@@ -315,6 +315,65 @@ local function notebook_venv_setup()
 	})
 end
 
+-- Instala librería(s) EN CALIENTE dentro del venv de notebooks, sin tocar
+-- el config: pide el/los nombre(s), corre pip async y avisa el resultado.
+-- Se pueden pasar varias separadas por espacio (ej: "requests httpx tqdm").
+local function notebook_venv_install()
+	local py = NB_VENV_DIR .. "/bin/python"
+	if vim.fn.executable(py) ~= 1 then
+		vim.notify("Todavía no existe el venv de notebooks. Crealo primero con <leader>jV.", vim.log.levels.WARN)
+		return
+	end
+
+	vim.ui.input({ prompt = "pip install (en venv notebooks): " }, function(input)
+		if not input or vim.trim(input) == "" then
+			return -- cancelado / vacío
+		end
+
+		-- Cada token es un paquete; lo comillamos por separado para que
+		-- specs tipo  "pandas==2.2"  o  "ruff>=0.5"  pasen sanos a la shell.
+		local pkgs = {}
+		for tok in input:gmatch("%S+") do
+			table.insert(pkgs, shq(tok))
+		end
+		local cmd = shq(py) .. " -m pip install " .. table.concat(pkgs, " ")
+
+		vim.notify("Instalando: " .. input .. " …", vim.log.levels.INFO)
+
+		local errbuf = {}
+		vim.fn.jobstart({ "sh", "-c", cmd }, {
+			on_stdout = function(_, d)
+				if d then
+					vim.list_extend(errbuf, d)
+				end
+			end,
+			on_stderr = function(_, d)
+				if d then
+					vim.list_extend(errbuf, d)
+				end
+			end,
+			on_exit = function(_, code)
+				vim.schedule(function()
+					if code == 0 then
+						vim.notify(
+							"✓ Instalado en el venv: " .. input .. "\n(reiniciá el kernel con <leader>jk si ya estaba abierto)",
+							vim.log.levels.INFO
+						)
+					else
+						local lines = vim.tbl_filter(function(l)
+							return l ~= ""
+						end, errbuf)
+						vim.notify(
+							"✗ Falló pip (code " .. code .. "):\n" .. table.concat(lines, "\n"):sub(-900),
+							vim.log.levels.ERROR
+						)
+					end
+				end)
+			end,
+		})
+	end)
+end
+
 return {
 
 	-- =====================
@@ -538,6 +597,12 @@ return {
 			-- cualquier buffer (no depende de que molten esté cargado).
 			vim.keymap.set("n", "<leader>jV", notebook_venv_setup, {
 				desc = "Jupyter: crear/asegurar venv de notebooks + kernel",
+			})
+
+			-- Instalar librerías al vuelo en el venv de notebooks: te
+			-- pregunta el nombre y corre pip, sin editar el config del repo.
+			vim.keymap.set("n", "<leader>jP", notebook_venv_install, {
+				desc = "Jupyter: pip install en venv de notebooks",
 			})
 		end,
 	},

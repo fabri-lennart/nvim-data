@@ -51,6 +51,7 @@ return {
 				-- Texto sale como virt-text bajo la celda; los plots en <leader>jo.
 				{ "<leader>ji", desc = "Iniciar kernel (venv notebooks por defecto)", icon = "" },
 				{ "<leader>jV", desc = "Crear/asegurar venv de notebooks + kernel", icon = "" },
+				{ "<leader>jP", desc = "pip install en venv de notebooks (te pregunta)", icon = "" },
 				{ "<leader>jk", desc = "Reiniciar kernel", icon = "" },
 				{ "<leader>jx", desc = "Interrumpir ejecución", icon = "" },
 				{ "<leader>jc", desc = "▶ Ejecutar CELDA actual (# %%)", icon = "" },

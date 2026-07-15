@@ -418,20 +418,15 @@ return {
 		version = "^1.0.0",
 		build = ":UpdateRemotePlugins",
 		dependencies = { "3rd/image.nvim" },
+		-- Cargamos molten SOLO por filetype (python) y por sus atajos.
+		-- ¡OJO! NO usar `cmd = { "MoltenInit", ... }` aquí: molten es un
+		-- REMOTE PLUGIN de Python, sus comandos los registra el manifiesto
+		-- (rplugin.vim) al arrancar Neovim. Si además los declaramos en `cmd`,
+		-- lazy.nvim crea placeholders con esos mismos nombres y, cuando carga
+		-- molten (disparado por `ft`/`keys`), BORRA esos placeholders... que
+		-- para entonces son los comandos reales del manifiesto. El síntoma es
+		-- justo: "not an editor command: MoltenEvaluateVisual".
 		ft = "python",
-		cmd = {
-			"MoltenInit",
-			"MoltenEvaluateLine",
-			"MoltenEvaluateVisual",
-			"MoltenEvaluateOperator",
-			"MoltenReevaluateCell",
-			"MoltenReevaluateAll",
-			"MoltenInterrupt",
-			"MoltenRestart",
-			"MoltenShowOutput",
-			"MoltenHideOutput",
-			"MoltenDelete",
-		},
 		init = function()
 			-- Proveedor de imágenes: ahora SÍ dibujamos plots (vía image.nvim).
 			vim.g.molten_image_provider = "image.nvim"

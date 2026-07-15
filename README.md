@@ -15,3 +15,14 @@ No distributions, no abstractions — just Lua.
 - Neovim 0.11+
 - git · lazygit · lazydocker · yazi
 - pip install black debugpy sqlfmt
+
+### Notebooks / Jupyter (Molten)
+- Kernel:   `pip install pynvim jupyter_client ipykernel jupytext`
+- Plots inline (ImageMagick, backend Kitty vía Ghostty):
+  `sudo apt install imagemagick`
+- Dentro de Neovim, una vez: `:UpdateRemotePlugins` y reiniciar.
+
+**Flujo:** abre un `.py` (celdas `# %%`) o un `.ipynb` →
+`<leader>ji` arranca el kernel → cursor en una celda → `<leader>jc` la ejecuta.
+El texto sale como *virt-text* debajo de la celda; los plots con `<leader>jo`.
+Todos los atajos están documentados en which-key bajo `<leader>j`.

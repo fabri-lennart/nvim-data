@@ -29,7 +29,7 @@ return {
 				{ "<leader>m", group = "dbt / markdown", icon = "" },
 				{ "<leader>R", group = "http (kulala)", icon = "󱂛" },
 				{ "<leader>i", group = "infra (terraform)", icon = "󱁢" },
-				{ "<leader>j", group = "jupyter (molten)", icon = "" },
+				{ "<leader>j", group = "jupyter / celdas (molten)", icon = "" },
 				{ "<leader>a", group = "ai", icon = "󰚩" },
 				{ "<leader>e", group = "explorer", icon = "" },
 				{ "<leader>u", group = "ui / toggles", icon = "" },
@@ -45,6 +45,25 @@ return {
 				{ "<leader>dP", desc = "Log point", icon = "" },
 				{ "<leader>dx", desc = "Terminar sesión", icon = "" },
 				{ "<leader>du", desc = "Panel de debug (UI)", icon = "" },
+
+				-- ---------- Jupyter / celdas (Molten): iconografía + guía en el popup ----------
+				-- Flujo: <leader>ji (kernel) → cursor en celda → <leader>jc (ejecutar).
+				-- Texto sale como virt-text bajo la celda; los plots en <leader>jo.
+				{ "<leader>ji", desc = "Iniciar/elegir kernel (1º de todo)", icon = "" },
+				{ "<leader>jk", desc = "Reiniciar kernel", icon = "" },
+				{ "<leader>jx", desc = "Interrumpir ejecución", icon = "" },
+				{ "<leader>jc", desc = "▶ Ejecutar CELDA actual (# %%)", icon = "" },
+				{ "<leader>jl", desc = "Ejecutar línea actual", icon = "" },
+				{ "<leader>je", desc = "Ejecutar por movimiento (ej. jeip)", icon = "" },
+				{ "<leader>jv", desc = "Ejecutar selección (modo visual)", icon = "" },
+				{ "<leader>jr", desc = "Reevaluar celda actual", icon = "" },
+				{ "<leader>jA", desc = "Reevaluar TODAS las celdas", icon = "" },
+				{ "<leader>jn", desc = "Ir a celda siguiente", icon = "" },
+				{ "<leader>jp", desc = "Ir a celda anterior", icon = "" },
+				{ "<leader>jb", desc = "Insertar bloque de celda (# %%)", icon = "" },
+				{ "<leader>jo", desc = "Mostrar salida — plots se ven aquí", icon = "" },
+				{ "<leader>jh", desc = "Ocultar ventana de salida", icon = "" },
+				{ "<leader>jd", desc = "Borrar salida de la celda", icon = "" },
 
 				-- ---------- Git: quick launch ----------
 				{ "<leader>gg", desc = "LazyGit (flotante)", icon = "" },

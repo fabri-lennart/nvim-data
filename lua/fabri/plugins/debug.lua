@@ -121,4 +121,42 @@ return {
 			)
 		end,
 	},
+
+	-- =====================
+	-- LUA DEBUGGER (for Neovim Lua development)
+	-- =====================
+	{
+		"jbyuki/one-small-step-for-vimkind",
+		dependencies = { "mfussenegger/nvim-dap" },
+		ft = "lua",
+		config = function()
+			local dap = require("dap")
+
+			-- Adapter: attaches to a Neovim instance running the OSV server
+			dap.adapters.nlua = function(callback, config)
+				callback({
+					type = "server",
+					host = config.host or "127.0.0.1",
+					port = config.port or 8086,
+				})
+			end
+
+			dap.configurations.lua = {
+				{
+					type = "nlua",
+					request = "attach",
+					name = "Attach to running Neovim instance",
+				},
+			}
+
+			local map = vim.keymap.set
+			local opts = { noremap = true, silent = true }
+
+			-- Launch the debug server inside THIS Neovim instance,
+			-- then hit <F5> to attach and start stepping through your Lua.
+			map("n", "<leader>DL", function()
+				require("osv").launch({ port = 8086 })
+			end, vim.tbl_extend("force", opts, { desc = "Launch Lua debug server" }))
+		end,
+	},
 }

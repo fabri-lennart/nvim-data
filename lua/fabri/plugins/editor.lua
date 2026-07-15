@@ -95,18 +95,43 @@ return {
 		config = function()
 			local wk = require("which-key")
 
-			wk.setup({ preset = "modern", delay = 300 })
+			wk.setup({
+				preset = "modern",
+				-- Pop up the hint window the instant <leader> (space) is pressed
+				delay = 0,
+			})
 
 			wk.add({
-				{ "<leader>f", group = "find" },
-				{ "<leader>s", group = "splits" },
-				{ "<leader>g", group = "git" },
-				{ "<leader>d", group = "database" },
-				{ "<leader>l", group = "lsp" },
-				{ "<leader>t", group = "terminal" },
-				{ "<leader>a", group = "ai" },
-				{ "<leader>D", group = "debug" },
-				{ "<leader>e", group = "explorer" },
+				-- Leader groups (with icons for a cleaner popup)
+				{ "<leader>f", group = "find", icon = "" },
+				{ "<leader>s", group = "splits", icon = "" },
+				{ "<leader>g", group = "git", icon = "" },
+				{ "<leader>d", group = "database", icon = "" },
+				{ "<leader>l", group = "lsp", icon = "" },
+				{ "<leader>t", group = "terminal", icon = "" },
+				{ "<leader>a", group = "ai", icon = "󰚩" },
+				{ "<leader>D", group = "debug", icon = "" },
+				{ "<leader>e", group = "explorer", icon = "" },
+				{ "<leader>u", group = "ui / toggles", icon = "" },
+
+				-- Splits: create + resize kept together under <leader>s
+				{ "<leader>sv", desc = "Split vertically", icon = "" },
+				{ "<leader>sh", desc = "Split horizontally", icon = "" },
+
+				-- Window navigation (Ctrl+hjkl) — always visible as a hint group.
+				-- Registered as a documentation group so pressing <C-w> or browsing
+				-- with :WhichKey surfaces the split movement/resize combos.
+				{
+					mode = { "n" },
+					{ "<C-h>", desc = "Window: move left", icon = "" },
+					{ "<C-j>", desc = "Window: move down", icon = "" },
+					{ "<C-k>", desc = "Window: move up", icon = "" },
+					{ "<C-l>", desc = "Window: move right", icon = "" },
+					{ "<C-Up>", desc = "Window: taller", icon = "" },
+					{ "<C-Down>", desc = "Window: shorter", icon = "" },
+					{ "<C-Left>", desc = "Window: narrower", icon = "" },
+					{ "<C-Right>", desc = "Window: wider", icon = "" },
+				},
 			})
 		end,
 	},
@@ -179,7 +204,8 @@ return {
 		config = function()
 			require("conform").setup({
 				formatters_by_ft = {
-					python = { "black" },
+					-- Ruff: sorts imports first, then formats (drop-in for black + isort)
+					python = { "ruff_organize_imports", "ruff_format" },
 					lua = { "stylua" },
 					sql = { "sqlfmt" },
 					sh = { "shfmt" },

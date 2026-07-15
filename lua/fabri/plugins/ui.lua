@@ -1,23 +1,81 @@
 return {
 
 	-- =====================
-	-- COLORSCHEME
+	-- COLORSCHEME (Nord)
 	-- =====================
 	{
-		"ellisonleao/gruvbox.nvim",
+		"AlexvZyl/nordic.nvim",
 		priority = 1000,
 		config = function()
-			require("gruvbox").setup({
-				contrast = "hard",
-				transparent_mode = false,
-				italic = {
-					strings = false,
-					comments = true,
-					operators = false,
-					folds = true,
+			require("nordic").setup({
+				bold_keywords = false,
+				italic_comments = true,
+				transparent = {
+					bg = false,
+					float = false,
 				},
+				reduced_blue = true,
+				cursorline = {
+					theme = "dark",
+					blend = 0.85,
+				},
+				telescope = { style = "flat" },
 			})
-			vim.cmd.colorscheme("gruvbox")
+			require("nordic").load()
+
+			-- ---------------------------------------------------------------
+			-- Transparency toggle
+			-- Hot-swaps the editor background on/off. Theme-agnostic: it strips
+			-- the background from the relevant highlight groups while keeping
+			-- foregrounds intact, and reloads Nord to restore the original look.
+			-- ---------------------------------------------------------------
+			local transparent = false
+
+			local groups = {
+				"Normal",
+				"NormalNC",
+				"NormalFloat",
+				"FloatBorder",
+				"SignColumn",
+				"EndOfBuffer",
+				"MsgArea",
+				"LineNr",
+				"CursorLineNr",
+				"NeoTreeNormal",
+				"NeoTreeNormalNC",
+				"NeoTreeEndOfBuffer",
+				"TelescopeNormal",
+				"TelescopeBorder",
+				"WhichKeyFloat",
+			}
+
+			local function set_transparency(enabled)
+				transparent = enabled
+				if enabled then
+					for _, g in ipairs(groups) do
+						local hl = vim.api.nvim_get_hl(0, { name = g, link = false })
+						hl.bg = nil
+						hl.ctermbg = nil
+						hl.link = nil
+						vim.api.nvim_set_hl(0, g, hl)
+					end
+				else
+					-- Reload Nord to restore every original background
+					require("nordic").load()
+				end
+			end
+
+			vim.api.nvim_create_user_command("ToggleTransparency", function()
+				set_transparency(not transparent)
+				vim.notify("Transparency " .. (transparent and "ON" or "OFF"), vim.log.levels.INFO)
+			end, { desc = "Toggle background transparency" })
+
+			vim.keymap.set(
+				"n",
+				"<leader>ut",
+				"<cmd>ToggleTransparency<cr>",
+				{ noremap = true, silent = true, desc = "Toggle transparency" }
+			)
 		end,
 	},
 
@@ -30,7 +88,7 @@ return {
 		config = function()
 			require("lualine").setup({
 				options = {
-					theme = "gruvbox",
+					theme = "nordic",
 					component_separators = "|",
 					section_separators = { left = "", right = "" },
 					globalstatus = true,
@@ -127,10 +185,10 @@ return {
 			local alpha = require("alpha")
 			local dashboard = require("alpha.themes.dashboard")
 
-			-- Colores del dashboard con la paleta de catppuccin
-			vim.api.nvim_set_hl(0, "AlphaHeader", { fg = "#b8bb26" })
-			vim.api.nvim_set_hl(0, "AlphaButtons", { fg = "#fe8019" })
-			vim.api.nvim_set_hl(0, "AlphaFooter", { fg = "#fabd2f" })
+			-- Colores del dashboard con la paleta de Nord (frost + aurora)
+			vim.api.nvim_set_hl(0, "AlphaHeader", { fg = "#88C0D0" })
+			vim.api.nvim_set_hl(0, "AlphaButtons", { fg = "#81A1C1" })
+			vim.api.nvim_set_hl(0, "AlphaFooter", { fg = "#EBCB8B" })
 
 			dashboard.section.header.val = {
 				"",

@@ -29,7 +29,7 @@ require("lazy").setup({
     lazy = false,
   },
   install = {
-    colorscheme = { "gruvbox", "habamax" },
+    colorscheme = { "nordic", "habamax" },
   },
   checker = {
     enabled = true,

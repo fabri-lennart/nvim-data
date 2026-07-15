@@ -51,12 +51,19 @@
 -- Patrón que delimita una celda (permite indentación y "# %%" o "#%%").
 local CELL = [[^\s*#\s*%%]]
 
--- Simula pulsaciones reales (igual que si las tecleara el usuario).
-local function feed(keys)
-	vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "nx", false)
-end
-
 -- Ejecuta la celda donde está el cursor (bloque entre dos "# %%").
+-- Llamamos DIRECTO a la función remota MoltenEvaluateRange (el mismo camino
+-- que usa <leader>ja para "todas las celdas").
+--
+-- ¿Por qué? Antes esto SIMULABA teclas con nvim_feedkeys:
+--     V + :<C-u>MoltenEvaluateVisual<CR>
+-- El problema: <leader>jc ya es un mapping y estábamos alimentando teclas
+-- DESDE DENTRO de un mapping que además abría la línea de comandos y llamaba
+-- a un remote-plugin (Molten es Python por RPC). El typeahead quedaba a
+-- medias: la cmdline se quedaba mostrando ":MoltenEvaluateVisual", nvim
+-- atascado entre visual y cmdline (por eso which-key se veía corrupto y
+-- había que salir de nvim) y el plot nunca llegaba a dibujarse.
+-- La API directa no toca la cmdline ni el modo visual → cero de todo eso.
 local function molten_eval_cell()
 	-- Límite superior: línea del "# %%" anterior (o inicio del archivo).
 	local top = vim.fn.search(CELL, "bcnW")
@@ -64,8 +71,15 @@ local function molten_eval_cell()
 	-- Límite inferior: línea antes del próximo "# %%" (o fin del archivo).
 	local nxt = vim.fn.search(CELL, "nW")
 	local bot = (nxt == 0) and vim.fn.line("$") or (nxt - 1)
-	-- Selecciona la celda en visual-línea y la evalúa (mismo camino que <leader>jv).
-	feed(("%dGV%dG:<C-u>MoltenEvaluateVisual<CR>"):format(top, bot))
+	if bot < top then
+		vim.notify("La celda está vacía.", vim.log.levels.WARN)
+		return
+	end
+	-- 1-indexado e inclusivo; sin arg de kernel usa el kernel actual ('%k').
+	local ok = pcall(vim.fn.MoltenEvaluateRange, top, bot)
+	if not ok then
+		vim.notify("¿Arrancaste el kernel? Probá <leader>ji.", vim.log.levels.WARN)
+	end
 end
 
 -- Navegación entre celdas.
@@ -122,6 +136,79 @@ local function molten_eval_all_cells()
 		end
 	end
 	vim.notify(("▶▶ Enviadas %d celdas de código al kernel."):format(count), vim.log.levels.INFO)
+end
+
+-- ─────────────────────────────────────────────────────────────────────
+-- GUARDAR LOS PLOTS A DISCO  (red de seguridad, junto al notebook)
+-- ─────────────────────────────────────────────────────────────────────
+-- Además de dibujarse en la terminal, cada figura se escribe como .png en
+-- la MISMA carpeta del archivo abierto. Si por lo que sea el render inline
+-- falla (protocolo Kitty, foco, etc.), SIEMPRE te queda el .png para abrirlo
+-- aparte → nunca te quedás sin ver el gráfico.
+--
+-- Cómo funciona: parcheamos `flush_figures` del backend inline de ipykernel
+-- (la función que, al terminar CADA celda, captura las figuras para mostrarlas
+-- y luego las cierra). Guardamos el .png JUSTO ANTES de que las cierre, así
+-- la figura sigue viva y el archivo nunca sale en blanco. Es idempotente:
+-- volver a pulsarlo no re-parchea, solo actualiza la carpeta destino.
+--
+-- Envía un bloque de Python al kernel SIN dejarlo en el buffer: lo anexa al
+-- final, lo evalúa con MoltenEvaluateRange (envío síncrono) y borra las líneas
+-- en el siguiente tick (el resultado del kernel llega async, ya no lo necesita).
+local function molten_run_block(lines)
+	local buf = vim.api.nvim_get_current_buf()
+	local cursor = vim.api.nvim_win_get_cursor(0)
+	local start = vim.fn.line("$") + 1
+	vim.fn.append(start - 1, lines)
+	local finish = start + #lines - 1
+	local ok = pcall(vim.fn.MoltenEvaluateRange, start, finish)
+	vim.schedule(function()
+		pcall(vim.fn.deletebufline, buf, start, finish)
+		pcall(vim.api.nvim_win_set_cursor, 0, cursor)
+	end)
+	return ok
+end
+
+local function molten_toggle_figure_autosave()
+	local dir = vim.fn.expand("%:p:h")
+	if dir == "" then
+		dir = vim.fn.getcwd()
+	end
+	local code = {
+		"import os as _os",
+		"import matplotlib.pyplot as _plt",
+		"import matplotlib_inline.backend_inline as _bi",
+		"_bi._molten_dir = r'''" .. dir .. "'''",
+		"if not getattr(_bi, '_molten_patched', False):",
+		"    _molten_orig_flush = _bi.flush_figures",
+		"    _bi._molten_n = 0",
+		"    def _molten_flush():",
+		"        for _num in _plt.get_fignums():",
+		"            _bi._molten_n += 1",
+		"            _p = _os.path.join(_bi._molten_dir, 'figura_%03d.png' % _bi._molten_n)",
+		"            try:",
+		"                _plt.figure(_num).savefig(_p, dpi=150, bbox_inches='tight')",
+		"                print('🖼  guardada ->', _p)",
+		"            except Exception as _e:",
+		"                print('no pude guardar la figura:', _e)",
+		"        return _molten_orig_flush()",
+		"    _ip = get_ipython()",
+		"    try:",
+		"        _ip.events.unregister('post_execute', _molten_orig_flush)",
+		"    except Exception:",
+		"        pass",
+		"    _ip.events.register('post_execute', _molten_flush)",
+		"    _bi.flush_figures = _molten_flush",
+		"    _bi._molten_patched = True",
+		"    print('✓ AUTOGUARDADO de figuras ACTIVADO ->', _bi._molten_dir)",
+		"else:",
+		"    print('✓ Autoguardado ya activo. Carpeta ->', _bi._molten_dir)",
+	}
+	if molten_run_block(code) then
+		vim.notify("Autoguardado de figuras → " .. dir, vim.log.levels.INFO)
+	else
+		vim.notify("¿Arrancaste el kernel? Probá <leader>ji primero.", vim.log.levels.WARN)
+	end
 end
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -837,6 +924,8 @@ return {
 			{ "<leader>jo", "<cmd>MoltenShowOutput<cr>", desc = "Molten: mostrar salida (plots aquí)" },
 			{ "<leader>jh", "<cmd>MoltenHideOutput<cr>", desc = "Molten: ocultar salida" },
 			{ "<leader>jd", "<cmd>MoltenDelete<cr>", desc = "Molten: borrar salida de la celda" },
+			-- Red de seguridad: guardar cada figura también como .png junto al notebook
+			{ "<leader>jF", molten_toggle_figure_autosave, ft = "python", desc = "Molten: guardar figuras a disco (autosave junto al notebook)" },
 		},
 	},
 }

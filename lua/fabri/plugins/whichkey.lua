@@ -69,6 +69,7 @@ return {
 				{ "<leader>jo", desc = "Mostrar salida — plots se ven aquí", icon = "" },
 				{ "<leader>jh", desc = "Ocultar ventana de salida", icon = "" },
 				{ "<leader>jd", desc = "Borrar salida de la celda", icon = "" },
+				{ "<leader>jF", desc = "Guardar figuras a disco (autosave junto al notebook)", icon = "" },
 
 				-- ---------- Git: quick launch ----------
 				{ "<leader>gg", desc = "LazyGit (flotante)", icon = "" },

@@ -61,6 +61,7 @@ return {
 				{ "<leader>jn", desc = "Ir a celda siguiente", icon = "" },
 				{ "<leader>jp", desc = "Ir a celda anterior", icon = "" },
 				{ "<leader>jb", desc = "Insertar bloque de celda (# %%)", icon = "" },
+				{ "<leader>jN", desc = "NUEVO notebook (.ipynb) + elegir kernel", icon = "" },
 				{ "<leader>jo", desc = "Mostrar salida — plots se ven aquí", icon = "" },
 				{ "<leader>jh", desc = "Ocultar ventana de salida", icon = "" },
 				{ "<leader>jd", desc = "Borrar salida de la celda", icon = "" },

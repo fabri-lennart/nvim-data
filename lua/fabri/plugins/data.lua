@@ -315,30 +315,140 @@ local function notebook_venv_setup()
 	})
 end
 
--- Instala librería(s) EN CALIENTE dentro del venv de notebooks, sin tocar
--- el config: pide el/los nombre(s), corre pip async y avisa el resultado.
--- Se pueden pasar varias separadas por espacio (ej: "requests httpx tqdm").
+-- ─────────────────────────────────────────────────────────────────────
+-- INSTALAR LIBRERÍAS AL VUELO  —  DOS DESTINOS BIEN DIFERENCIADOS
+-- ─────────────────────────────────────────────────────────────────────
+-- Hay dos venvs posibles y el menú de which-key los distingue claramente:
+--
+--   <leader>jP → venv GENERAL de notebooks (~/.venvs/notebooks).
+--                El compartido que usás para todo. Siempre disponible.
+--   <leader>jI → venv del PROYECTO (.venv/ o venv/ local).
+--                Se busca subiendo desde el archivo actual; si no hay,
+--                te ofrece crearlo en la raíz del proyecto (cwd).
+--
+-- Ambos usan el MISMO runner de pip (`pip_install_async`); solo cambia el
+-- intérprete de destino y la etiqueta que se muestra en los mensajes.
+-- ─────────────────────────────────────────────────────────────────────
+
+-- Runner común: corre `pip install <input>` async en el python `py`.
+-- `label` es solo para los avisos (ej. "venv GENERAL", "proyecto: ./.venv").
+-- Cada token del input es un paquete y se comilla por separado para que
+-- specs tipo  "pandas==2.2"  o  "ruff>=0.5"  pasen sanos a la shell.
+local function pip_install_async(py, input, label)
+	local pkgs = {}
+	for tok in input:gmatch("%S+") do
+		table.insert(pkgs, shq(tok))
+	end
+	local cmd = shq(py) .. " -m pip install " .. table.concat(pkgs, " ")
+
+	vim.notify(("Instalando en %s: %s …"):format(label, input), vim.log.levels.INFO)
+
+	local errbuf = {}
+	vim.fn.jobstart({ "sh", "-c", cmd }, {
+		on_stdout = function(_, d)
+			if d then
+				vim.list_extend(errbuf, d)
+			end
+		end,
+		on_stderr = function(_, d)
+			if d then
+				vim.list_extend(errbuf, d)
+			end
+		end,
+		on_exit = function(_, code)
+			vim.schedule(function()
+				if code == 0 then
+					vim.notify(
+						("✓ Instalado en %s: %s\n(reiniciá el kernel con <leader>jk si ya estaba abierto)"):format(
+							label,
+							input
+						),
+						vim.log.levels.INFO
+					)
+				else
+					local lines = vim.tbl_filter(function(l)
+						return l ~= ""
+					end, errbuf)
+					vim.notify(
+						"✗ Falló pip (code " .. code .. "):\n" .. table.concat(lines, "\n"):sub(-900),
+						vim.log.levels.ERROR
+					)
+				end
+			end)
+		end,
+	})
+end
+
+-- <leader>jP — pip install en el venv GENERAL de notebooks.
 local function notebook_venv_install()
 	local py = NB_VENV_DIR .. "/bin/python"
 	if vim.fn.executable(py) ~= 1 then
-		vim.notify("Todavía no existe el venv de notebooks. Crealo primero con <leader>jV.", vim.log.levels.WARN)
+		vim.notify("Todavía no existe el venv GENERAL de notebooks. Crealo primero con <leader>jV.", vim.log.levels.WARN)
 		return
 	end
 
-	vim.ui.input({ prompt = "pip install (en venv notebooks): " }, function(input)
+	vim.ui.input({ prompt = "pip install → venv GENERAL (~/.venvs/notebooks): " }, function(input)
 		if not input or vim.trim(input) == "" then
 			return -- cancelado / vacío
 		end
+		pip_install_async(py, input, "venv GENERAL (~/.venvs/notebooks)")
+	end)
+end
 
-		-- Cada token es un paquete; lo comillamos por separado para que
-		-- specs tipo  "pandas==2.2"  o  "ruff>=0.5"  pasen sanos a la shell.
-		local pkgs = {}
-		for tok in input:gmatch("%S+") do
-			table.insert(pkgs, shq(tok))
+-- Busca un venv de PROYECTO: desde la carpeta del archivo actual sube por el
+-- árbol de directorios buscando  .venv/bin/python  o  venv/bin/python.
+-- Devuelve (ruta_al_python, ruta_al_venv) o nil si no encuentra ninguno.
+local function find_project_venv_python()
+	local dir = vim.fn.expand("%:p:h")
+	if dir == "" then
+		dir = vim.fn.getcwd()
+	end
+	while true do
+		for _, name in ipairs({ ".venv", "venv" }) do
+			local venv = dir .. "/" .. name
+			local py = venv .. "/bin/python"
+			if vim.fn.executable(py) == 1 then
+				return py, venv
+			end
 		end
-		local cmd = shq(py) .. " -m pip install " .. table.concat(pkgs, " ")
+		local parent = vim.fn.fnamemodify(dir, ":h")
+		if parent == dir then
+			return nil -- llegamos a la raíz "/"
+		end
+		dir = parent
+	end
+end
 
-		vim.notify("Instalando: " .. input .. " …", vim.log.levels.INFO)
+-- <leader>jI — pip install en el venv del PROYECTO. Si no hay ninguno,
+-- ofrece crear un .venv (con pip + ipykernel) en la raíz (cwd).
+local function project_venv_install()
+	local py, venv = find_project_venv_python()
+	if py then
+		local short = vim.fn.fnamemodify(venv, ":~:.")
+		vim.ui.input({ prompt = ("pip install → proyecto (%s): "):format(short) }, function(input)
+			if not input or vim.trim(input) == "" then
+				return
+			end
+			pip_install_async(py, input, "proyecto (" .. short .. ")")
+		end)
+		return
+	end
+
+	-- No hay venv de proyecto: ofrecer crearlo en la raíz (cwd).
+	local target = vim.fn.getcwd() .. "/.venv"
+	local short = vim.fn.fnamemodify(target, ":~:.")
+	vim.ui.select({ "Sí, crear " .. short, "No, cancelar" }, {
+		prompt = "No encontré venv de proyecto (.venv/venv). ¿Creo uno?",
+	}, function(choice)
+		if not choice or choice:match("^No") then
+			return
+		end
+		local newpy = target .. "/bin/python"
+		local cmd = table.concat({
+			"python3 -m venv " .. shq(target),
+			shq(newpy) .. " -m pip install --upgrade pip ipykernel",
+		}, " && ")
+		vim.notify("Creando venv del proyecto en " .. short .. " …", vim.log.levels.INFO)
 
 		local errbuf = {}
 		vim.fn.jobstart({ "sh", "-c", cmd }, {
@@ -356,7 +466,7 @@ local function notebook_venv_install()
 				vim.schedule(function()
 					if code == 0 then
 						vim.notify(
-							"✓ Instalado en el venv: " .. input .. "\n(reiniciá el kernel con <leader>jk si ya estaba abierto)",
+							"✓ venv del proyecto creado en " .. short .. "\nVolvé a pulsar <leader>jI para instalar librerías ahí.",
 							vim.log.levels.INFO
 						)
 					else
@@ -364,7 +474,7 @@ local function notebook_venv_install()
 							return l ~= ""
 						end, errbuf)
 						vim.notify(
-							"✗ Falló pip (code " .. code .. "):\n" .. table.concat(lines, "\n"):sub(-900),
+							"✗ Falló crear el venv (code " .. code .. "):\n" .. table.concat(lines, "\n"):sub(-900),
 							vim.log.levels.ERROR
 						)
 					end
@@ -599,10 +709,14 @@ return {
 				desc = "Jupyter: crear/asegurar venv de notebooks + kernel",
 			})
 
-			-- Instalar librerías al vuelo en el venv de notebooks: te
-			-- pregunta el nombre y corre pip, sin editar el config del repo.
+			-- Instalar librerías al vuelo — DOS destinos diferenciados:
+			--   jP → venv GENERAL (~/.venvs/notebooks), el compartido.
+			--   jI → venv del PROYECTO (.venv/venv local, o lo crea).
 			vim.keymap.set("n", "<leader>jP", notebook_venv_install, {
-				desc = "Jupyter: pip install en venv de notebooks",
+				desc = "Jupyter: pip install en venv GENERAL (~/.venvs/notebooks)",
+			})
+			vim.keymap.set("n", "<leader>jI", project_venv_install, {
+				desc = "Jupyter: pip install en venv del PROYECTO (.venv local)",
 			})
 		end,
 	},

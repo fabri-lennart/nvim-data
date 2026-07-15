@@ -76,6 +76,8 @@ return {
 					"toml",
 					"bash",
 					"markdown",
+					"markdown_inline",
+					"csv",
 					"hcl",
 					"jinja",
 				},
@@ -106,17 +108,32 @@ return {
 				{ "<leader>f", group = "find", icon = "" },
 				{ "<leader>s", group = "splits", icon = "" },
 				{ "<leader>g", group = "git", icon = "" },
-				{ "<leader>d", group = "database", icon = "" },
+				{ "<leader>d", group = "debug", icon = "" },
+				{ "<leader>b", group = "database", icon = "" },
 				{ "<leader>l", group = "lsp", icon = "" },
 				{ "<leader>t", group = "terminal", icon = "" },
 				{ "<leader>a", group = "ai", icon = "󰚩" },
-				{ "<leader>D", group = "debug", icon = "" },
 				{ "<leader>e", group = "explorer", icon = "" },
 				{ "<leader>u", group = "ui / toggles", icon = "" },
+				{ "<leader>c", group = "code / formato", icon = "" },
+				{ "<leader>m", group = "dbt / markdown", icon = "" },
+				{ "<leader>R", group = "http (kulala)", icon = "󱂛" },
 
 				-- Splits: create + resize kept together under <leader>s
 				{ "<leader>sv", desc = "Split vertically", icon = "" },
 				{ "<leader>sh", desc = "Split horizontally", icon = "" },
+
+				-- Debug (nvim-dap) — iconografía limpia para el menú flotante
+				{ "<leader>dt", desc = "Toggle breakpoint", icon = "" },
+				{ "<leader>dc", desc = "Continuar / iniciar", icon = "" },
+				{ "<leader>di", desc = "Step into (entrar)", icon = "" },
+				{ "<leader>do", desc = "Step over (siguiente)", icon = "" },
+				{ "<leader>dO", desc = "Step out (salir)", icon = "" },
+				{ "<leader>dr", desc = "Abrir REPL / consola", icon = "" },
+				{ "<leader>dB", desc = "Breakpoint condicional", icon = "" },
+				{ "<leader>dP", desc = "Log point", icon = "" },
+				{ "<leader>dx", desc = "Terminar sesión", icon = "" },
+				{ "<leader>du", desc = "Panel de debug (UI)", icon = "" },
 
 				-- Window navigation (Ctrl+hjkl) — always visible as a hint group.
 				-- Registered as a documentation group so pressing <C-w> or browsing

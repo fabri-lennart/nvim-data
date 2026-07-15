@@ -32,12 +32,12 @@ return {
       -- Postgres:  postgresql://user:pass@host/db
 
       local map = vim.keymap.set
-      local opts = { noremap = true, silent = true }
 
-      map("n", "<leader>db", "<cmd>DBUIToggle<cr>",       opts)
-      map("n", "<leader>df", "<cmd>DBUIFindBuffer<cr>",   opts)
-      map("n", "<leader>dr", "<cmd>DBUIRenameBuffer<cr>", opts)
-      map("n", "<leader>dl", "<cmd>DBUILastQueryInfo<cr>", opts)
+      -- Database (DBUI) under <leader>b — <leader>d is now Debug
+      map("n", "<leader>bt", "<cmd>DBUIToggle<cr>",        { noremap = true, silent = true, desc = "DB: toggle UI" })
+      map("n", "<leader>bf", "<cmd>DBUIFindBuffer<cr>",    { noremap = true, silent = true, desc = "DB: find buffer" })
+      map("n", "<leader>br", "<cmd>DBUIRenameBuffer<cr>",  { noremap = true, silent = true, desc = "DB: renombrar buffer" })
+      map("n", "<leader>bl", "<cmd>DBUILastQueryInfo<cr>", { noremap = true, silent = true, desc = "DB: última query" })
     end,
   },
 }

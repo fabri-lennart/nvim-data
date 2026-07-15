@@ -8,24 +8,32 @@ return {
 		config = function()
 			local dap = require("dap")
 			local map = vim.keymap.set
-			local opts = { noremap = true, silent = true }
+
+			-- Build a { noremap, silent, desc } table so which-key shows the label
+			local function d(desc)
+				return { noremap = true, silent = true, desc = desc }
+			end
 
 			-- Main debug flow (F keys are standard across all IDEs)
-			map("n", "<F5>", dap.continue, opts) -- start / continue
-			map("n", "<F10>", dap.step_over, opts) -- step over
-			map("n", "<F11>", dap.step_into, opts) -- step into
-			map("n", "<F12>", dap.step_out, opts) -- step out
+			map("n", "<F5>", dap.continue, d("Debug: continuar")) -- start / continue
+			map("n", "<F10>", dap.step_over, d("Debug: step over")) -- step over
+			map("n", "<F11>", dap.step_into, d("Debug: step into")) -- step into
+			map("n", "<F12>", dap.step_out, d("Debug: step out")) -- step out
 
-			-- Breakpoints under <leader>D
-			map("n", "<leader>Db", dap.toggle_breakpoint, opts)
-			map("n", "<leader>DB", function()
-				dap.set_breakpoint(vim.fn.input("Breakpoint condition: "))
-			end, opts)
-			map("n", "<leader>Dl", function()
-				dap.set_breakpoint(nil, nil, vim.fn.input("Log point message: "))
-			end, opts)
-			map("n", "<leader>Dr", dap.repl.open, opts)
-			map("n", "<leader>Dx", dap.terminate, opts)
+			-- Debug controls under <leader>d
+			map("n", "<leader>dc", dap.continue, d("Continuar / iniciar"))
+			map("n", "<leader>di", dap.step_into, d("Step into (entrar)"))
+			map("n", "<leader>do", dap.step_over, d("Step over (siguiente línea)"))
+			map("n", "<leader>dO", dap.step_out, d("Step out (salir)"))
+			map("n", "<leader>dt", dap.toggle_breakpoint, d("Toggle breakpoint"))
+			map("n", "<leader>dB", function()
+				dap.set_breakpoint(vim.fn.input("Condición del breakpoint: "))
+			end, d("Breakpoint condicional"))
+			map("n", "<leader>dP", function()
+				dap.set_breakpoint(nil, nil, vim.fn.input("Mensaje de log point: "))
+			end, d("Log point"))
+			map("n", "<leader>dr", dap.repl.open, d("Abrir REPL / consola"))
+			map("n", "<leader>dx", dap.terminate, d("Terminar sesión"))
 		end,
 	},
 
@@ -78,7 +86,7 @@ return {
 				dapui.close()
 			end
 
-			vim.keymap.set("n", "<leader>Du", dapui.toggle, { noremap = true, silent = true, desc = "Toggle debug UI" })
+			vim.keymap.set("n", "<leader>du", dapui.toggle, { noremap = true, silent = true, desc = "Toggle panel de debug (UI)" })
 		end,
 	},
 
@@ -95,11 +103,10 @@ return {
 			require("dap-python").setup("python")
 
 			local map = vim.keymap.set
-			local opts = { noremap = true, silent = true }
 
-			map("n", "<leader>Dm", require("dap-python").test_method, opts)
-			map("n", "<leader>Dc", require("dap-python").test_class, opts)
-			map("v", "<leader>Ds", require("dap-python").debug_selection, opts)
+			map("n", "<leader>dm", require("dap-python").test_method, { noremap = true, silent = true, desc = "Python: debug test method" })
+			map("n", "<leader>dC", require("dap-python").test_class, { noremap = true, silent = true, desc = "Python: debug test class" })
+			map("v", "<leader>ds", require("dap-python").debug_selection, { noremap = true, silent = true, desc = "Python: debug selección" })
 		end,
 	},
 
@@ -115,9 +122,9 @@ return {
 
 			vim.keymap.set(
 				"n",
-				"<leader>Dt",
+				"<leader>dT",
 				require("dap-go").debug_test,
-				{ noremap = true, silent = true, desc = "Debug Go test" }
+				{ noremap = true, silent = true, desc = "Go: debug test" }
 			)
 		end,
 	},
@@ -154,9 +161,9 @@ return {
 
 			-- Launch the debug server inside THIS Neovim instance,
 			-- then hit <F5> to attach and start stepping through your Lua.
-			map("n", "<leader>DL", function()
+			map("n", "<leader>dl", function()
 				require("osv").launch({ port = 8086 })
-			end, vim.tbl_extend("force", opts, { desc = "Launch Lua debug server" }))
+			end, vim.tbl_extend("force", opts, { desc = "Lua: lanzar servidor de debug" }))
 		end,
 	},
 }

@@ -59,6 +59,37 @@ return {
 	},
 
 	-- =====================
+	-- RAINBOW_CSV — colorea cada columna de un CSV/TSV + consultas RBQL
+	-- Complementa a csvview: aquí ves las columnas por color de un vistazo
+	-- =====================
+	{
+		"cameron-wags/rainbow_csv.nvim",
+		config = true,
+		ft = { "csv", "tsv", "csv_semicolon", "csv_whitespace", "csv_pipe", "rfc_csv", "rfc_semicolon" },
+		cmd = { "RainbowDelim", "RainbowDelimSimple", "RainbowDelimQuoted", "RainbowMultiDelim" },
+	},
+
+	-- =====================
+	-- MARKDOWN-PREVIEW — previsualiza README/*.md en el navegador en vivo
+	-- <leader>mp para abrir/cerrar el preview
+	-- =====================
+	{
+		"iamcco/markdown-preview.nvim",
+		cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
+		ft = { "markdown" },
+		build = function()
+			vim.fn["mkdp#util#install"]()
+		end,
+		keys = {
+			{ "<leader>mp", "<cmd>MarkdownPreviewToggle<cr>", ft = "markdown", desc = "Markdown: toggle preview" },
+		},
+		config = function()
+			vim.g.mkdp_auto_close = 1
+			vim.g.mkdp_theme = "dark"
+		end,
+	},
+
+	-- =====================
 	-- VENV-SELECTOR — elegir venv/conda de Python al vuelo
 	-- =====================
 	{

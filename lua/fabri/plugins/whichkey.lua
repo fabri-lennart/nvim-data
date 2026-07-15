@@ -48,7 +48,7 @@ return {
 
 				-- ---------- Jupyter / celdas (Molten): iconografía + guía en el popup ----------
 				-- Flujo: <leader>ji (kernel) → cursor en celda → <leader>jc (ejecutar).
-				-- Texto sale como virt-text bajo la celda; los plots en <leader>jo.
+				-- La salida (texto y plots) sale en ventana flotante de la celda actual.
 				{ "<leader>ji", desc = "Iniciar kernel (venv GENERAL notebooks por defecto)", icon = "" },
 				{ "<leader>jV", desc = "Crear/asegurar venv GENERAL de notebooks + kernel", icon = "" },
 				{ "<leader>jP", desc = "pip install → venv GENERAL (~/.venvs/notebooks)", icon = "" },
@@ -60,7 +60,8 @@ return {
 				{ "<leader>je", desc = "Ejecutar por movimiento (ej. jeip)", icon = "" },
 				{ "<leader>jv", desc = "Ejecutar selección (modo visual)", icon = "" },
 				{ "<leader>jr", desc = "Reevaluar celda actual", icon = "" },
-				{ "<leader>jA", desc = "Reevaluar TODAS las celdas", icon = "" },
+				{ "<leader>ja", desc = "▶▶ Ejecutar TODAS las celdas (de cero, salta markdown)", icon = "" },
+				{ "<leader>jA", desc = "Reevaluar solo las celdas YA ejecutadas", icon = "" },
 				{ "<leader>jn", desc = "Ir a celda siguiente", icon = "" },
 				{ "<leader>jp", desc = "Ir a celda anterior", icon = "" },
 				{ "<leader>jb", desc = "Insertar bloque de celda (# %%)", icon = "" },

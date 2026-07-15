@@ -34,13 +34,13 @@
 -- │     b. Párate dentro de una celda y <leader>jc → ejecuta la celda.  │
 -- │        (o <leader>jl línea suelta, o selecciona y <leader>jv)       │
 -- │                                                                     │
--- │  4) ¿DÓNDE se ve lo renderizado?                                   │
--- │     • TEXTO (prints, df.head(), shapes): aparece como texto         │
--- │       "virtual" JUSTO DEBAJO de la celda, en el mismo buffer.       │
--- │     • PLOTS / imágenes: se dibujan en la VENTANA DE SALIDA de       │
--- │       Molten. Ábrela con <leader>jo (ciérrala con <leader>jh).      │
--- │       Ghostty habla el protocolo Kitty, así que la imagen se ve     │
--- │       de verdad, no como texto. (Requiere ImageMagick, ver README.) │
+-- │  4) ¿DÓNDE se ve lo renderizado?                                    │
+-- │     • Cada celda muestra su salida (texto Y plots) en una           │
+-- │       VENTANA FLOTANTE, y SOLO la de la celda donde estás.          │
+-- │     • Se abre sola al ejecutar. La reabrís con <leader>jo y         │
+-- │       la cerrás con <leader>jh. Nunca se apilan todas juntas.       │
+-- │     • Ghostty habla el protocolo Kitty → el plot se ve de           │
+-- │       verdad, no como texto. (Requiere ImageMagick, ver README.)    │
 -- │                                                                     │
 -- └───────────────────────────────────────────────────────────────────┘
 
@@ -80,6 +80,48 @@ end
 local function molten_insert_cell()
 	vim.api.nvim_put({ "", "# %%", "" }, "l", true, true)
 	vim.cmd("normal! j")
+end
+
+-- ─────────────────────────────────────────────────────────────────────
+-- EJECUTAR TODAS LAS CELDAS DE CÓDIGO (de arriba a abajo, desde cero).
+-- Molten NO trae esto de fábrica: `MoltenReevaluateAll` solo re-corre las
+-- celdas que YA evaluaste. Acá recorremos el archivo, detectamos cada
+-- "# %%" y evaluamos su bloque con la función remota MoltenEvaluateRange.
+-- Se saltean las celdas markdown ("# %% [markdown]" / "[md]"): son prosa.
+-- Como MoltenEvaluateRange es síncrona, el kernel encola las celdas y las
+-- ejecuta en orden. Necesitás el kernel ya arrancado (<leader>ji).
+-- ─────────────────────────────────────────────────────────────────────
+local function molten_eval_all_cells()
+	-- Junta las líneas que abren celda, marcando cuáles son markdown.
+	local markers = {}
+	for lnum = 1, vim.fn.line("$") do
+		local line = vim.fn.getline(lnum)
+		if line:match("^%s*#%s*%%%%") then
+			local low = line:lower()
+			local is_md = low:match("%[markdown%]") ~= nil or low:match("%[md%]") ~= nil
+			table.insert(markers, { lnum = lnum, md = is_md })
+		end
+	end
+
+	if #markers == 0 then
+		vim.notify("No encontré celdas «# %%» en este archivo.", vim.log.levels.WARN)
+		return
+	end
+
+	local count = 0
+	for i, m in ipairs(markers) do
+		if not m.md then
+			local top = m.lnum + 1 -- primera línea DESPUÉS del "# %%"
+			local next_lnum = markers[i + 1] and markers[i + 1].lnum or (vim.fn.line("$") + 1)
+			local bot = next_lnum - 1 -- última línea antes del próximo "# %%"
+			if bot >= top then
+				-- 1-indexado; sin arg de kernel, molten usa el kernel actual ('%k').
+				vim.fn.MoltenEvaluateRange(top, bot)
+				count = count + 1
+			end
+		end
+	end
+	vim.notify(("▶▶ Enviadas %d celdas de código al kernel."):format(count), vim.log.levels.INFO)
 end
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -653,7 +695,19 @@ return {
 			max_height_window_percentage = math.huge,
 			max_width_window_percentage = math.huge,
 			window_overlap_clear_enabled = true,
-			editor_only_render_when_focused = true,
+			-- Filetypes que NO deben "limpiar" la imagen al solaparse con su
+			-- ventana. Incluimos "" (buffer sin filetype) porque la ventana de
+			-- salida de Molten suele no tener filetype: sin esto, se contaría
+			-- como solape y borraría el plot. (Setup recomendado por molten.)
+			window_overlap_clear_ft_ignore = { "cmp_menu", "cmp_docs", "" },
+			-- OJO: NO activar `editor_only_render_when_focused`. Engancha
+			-- autocmds FocusLost/FocusGained que BORRAN la imagen ya dibujada
+			-- al perder el foco y la restauran al recuperarlo. Ghostty emite
+			-- eventos de foco (shell-integration=detect), y un FocusLost
+			-- espurio (al abrir la salida de Molten / arrancar el kernel) deja
+			-- el plot oculto para siempre —el texto sigue viéndose porque son
+			-- extmarks, no image.nvim. Ese era EL bug de "texto sí, plot no".
+			editor_only_render_when_focused = false,
 		},
 	},
 
@@ -729,7 +783,8 @@ return {
 	--   1. Abre un .py (con "# %%") o un .ipynb.
 	--   2. <leader>ji  → arranca el kernel (elige el de tu venv si te pregunta).
 	--   3. Cursor en una celda → <leader>jc  → la ejecuta.
-	--   4. Texto = virt-text bajo la celda · Plots = <leader>jo (ventana de salida).
+	--   4. Salida (texto y plots) en ventana flotante de la celda actual
+	--      (se abre sola; la reabrís con <leader>jo). Todas las celdas: <leader>ja.
 	-- =====================
 	{
 		"benlubas/molten-nvim",
@@ -746,16 +801,20 @@ return {
 		-- justo: "not an editor command: MoltenEvaluateVisual".
 		ft = "python",
 		init = function()
-			-- Proveedor de imágenes: ahora SÍ dibujamos plots (vía image.nvim).
+			-- Proveedor de imágenes: dibujamos plots (vía image.nvim).
 			vim.g.molten_image_provider = "image.nvim"
 			vim.g.molten_output_win_max_height = 20
-			-- No abrir la ventana de salida sola: el texto ya sale como virt-text,
-			-- y los plots los abrís a demanda con <leader>jo (menos ruido).
-			vim.g.molten_auto_open_output = false
 			vim.g.molten_wrap_output = true
-			-- Muestra la salida de TEXTO como texto virtual debajo de la celda.
-			vim.g.molten_virt_text_output = true
-			vim.g.molten_virt_lines_off_by_1 = true
+			-- MODO "solo celda actual": la salida NO se pega inline en el buffer.
+			-- Se muestra en una VENTANA FLOTANTE de la celda donde está el cursor
+			-- y se abre sola al ejecutar. Al moverte a otra celda ves la salida
+			-- de ESA celda; nunca se apilan todas a la vez. (La reabrís a mano
+			-- con <leader>jo y la cerrás con <leader>jh.)
+			vim.g.molten_auto_open_output = true
+			-- Sin texto virtual inline: evita que cada celda deje su salida
+			-- pegada debajo y el buffer se llene de resultados viejos.
+			vim.g.molten_virt_text_output = false
+			vim.g.molten_virt_lines_off_by_1 = false
 		end,
 		keys = {
 			-- Kernel
@@ -768,7 +827,8 @@ return {
 			{ "<leader>je", "<cmd>MoltenEvaluateOperator<cr>", desc = "Molten: ejecutar (motion, ej. jeip)" },
 			{ "<leader>jv", ":<C-u>MoltenEvaluateVisual<cr>gv", mode = "v", desc = "Molten: ejecutar selección" },
 			{ "<leader>jr", "<cmd>MoltenReevaluateCell<cr>", desc = "Molten: reevaluar celda actual" },
-			{ "<leader>jA", "<cmd>MoltenReevaluateAll<cr>", desc = "Molten: reevaluar TODAS las celdas" },
+			{ "<leader>ja", molten_eval_all_cells, ft = "python", desc = "Molten: ▶▶ ejecutar TODAS las celdas (de cero)" },
+			{ "<leader>jA", "<cmd>MoltenReevaluateAll<cr>", desc = "Molten: reevaluar solo las celdas YA ejecutadas" },
 			-- Navegar entre celdas
 			{ "<leader>jn", molten_next_cell, ft = "python", desc = "Molten: celda siguiente" },
 			{ "<leader>jp", molten_prev_cell, ft = "python", desc = "Molten: celda anterior" },

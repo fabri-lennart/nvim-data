@@ -139,18 +139,26 @@ local function molten_eval_all_cells()
 end
 
 -- ─────────────────────────────────────────────────────────────────────
--- GUARDAR LOS PLOTS A DISCO  (red de seguridad, junto al notebook)
+-- GUARDAR LOS PLOTS A DISCO  (autoguardado, junto al notebook)
 -- ─────────────────────────────────────────────────────────────────────
--- Además de dibujarse en la terminal, cada figura se escribe como .png en
--- la MISMA carpeta del archivo abierto. Si por lo que sea el render inline
--- falla (protocolo Kitty, foco, etc.), SIEMPRE te queda el .png para abrirlo
--- aparte → nunca te quedás sin ver el gráfico.
+-- Con <leader>jF activás el autoguardado: de ahí en más, CADA celda que
+-- produzca una figura escribe un .png en la carpeta "output/" del notebook
+-- (o en la carpeta del notebook si no hay output/). Las celdas de código
+-- normales no generan nada: se comportan igual que siempre. Así tenés el
+-- gráfico como archivo aunque el render inline (Kitty/foco) falle.
 --
--- Cómo funciona: parcheamos `flush_figures` del backend inline de ipykernel
--- (la función que, al terminar CADA celda, captura las figuras para mostrarlas
--- y luego las cierra). Guardamos el .png JUSTO ANTES de que las cierre, así
--- la figura sigue viva y el archivo nunca sale en blanco. Es idempotente:
--- volver a pulsarlo no re-parchea, solo actualiza la carpeta destino.
+-- Cómo funciona (y por qué la versión anterior guardaba 0 figuras):
+--   El backend inline de matplotlib CIERRA la figura en el mismo momento en
+--   que la muestra (close_figures=True, tanto en plt.show() como en el
+--   flush_figures de post_execute). Cualquier callback que corriera después
+--   ya la encontraba cerrada → get_fignums() vacío → no guardaba nada.
+--   Además NO se puede envolver show()/flush_figures: guardan estado en
+--   atributos de la propia función (show._draw_called, ._to_draw) y envolverlas
+--   los rompe ('function' object has no attribute '_draw_called').
+--   Solución: desactivar close_figures y registrar UN callback al final de
+--   post_execute que, tras el render inline, guarde las figuras abiertas y
+--   recién ahí las cierre (plt.close('all')) — cerrarlas evita el doble
+--   render en la celda siguiente. Es idempotente: re-pulsar no re-parchea.
 --
 -- Envía un bloque de Python al kernel SIN dejarlo en el buffer: lo anexa al
 -- final, lo evalúa con MoltenEvaluateRange (envío síncrono) y borra las líneas
@@ -170,38 +178,60 @@ local function molten_run_block(lines)
 end
 
 local function molten_toggle_figure_autosave()
-	local dir = vim.fn.expand("%:p:h")
-	if dir == "" then
-		dir = vim.fn.getcwd()
+	-- ¿Dónde guardar? En la carpeta "output/" junto al notebook si existe
+	-- (así respetamos la estructura del proyecto: cada capítulo tiene su
+	-- output/); si no, directamente en la carpeta del notebook.
+	local nbdir = vim.fn.expand("%:p:h")
+	if nbdir == "" then
+		nbdir = vim.fn.getcwd()
 	end
+	local outdir = nbdir .. "/output"
+	local dir = (vim.fn.isdirectory(outdir) == 1) and outdir or nbdir
+	-- Prefijo del archivo = nombre del notebook (sin extensión), para que
+	-- se vea "introductions_concepts_001.png" y no un genérico "figura".
+	local stem = vim.fn.expand("%:t:r")
+	if stem == "" then
+		stem = "figura"
+	end
+
 	local code = {
 		"import os as _os",
 		"import matplotlib.pyplot as _plt",
 		"import matplotlib_inline.backend_inline as _bi",
+		"from matplotlib_inline.backend_inline import InlineBackend as _IB",
 		"_bi._molten_dir = r'''" .. dir .. "'''",
+		"_bi._molten_stem = r'''" .. stem .. "'''",
 		"if not getattr(_bi, '_molten_patched', False):",
-		"    _molten_orig_flush = _bi.flush_figures",
-		"    _bi._molten_n = 0",
-		"    def _molten_flush():",
+		-- Clave del arreglo: que NI show() NI flush_figures cierren las figuras.
+		-- Por defecto (close_figures=True) la figura se cierra en el mismo
+		-- instante en que se muestra, así que cualquier callback posterior ya
+		-- la encuentra cerrada y no puede guardarla (ese era EL bug: guardaba
+		-- 0 figuras). La cerramos NOSOTROS, después de guardarla.
+		"    _IB.instance().close_figures = False",
+		"    def _molten_autosave():",
 		"        for _num in _plt.get_fignums():",
-		"            _bi._molten_n += 1",
-		"            _p = _os.path.join(_bi._molten_dir, 'figura_%03d.png' % _bi._molten_n)",
+		"            _fig = _plt.figure(_num)",
+		"            if not _fig.get_axes():",
+		"                continue",  -- figura vacía → no la guardamos
+		"            _bi._molten_n = getattr(_bi, '_molten_n', 0) + 1",
+		"            _p = _os.path.join(_bi._molten_dir, '%s_%03d.png' % (_bi._molten_stem, _bi._molten_n))",
 		"            try:",
-		"                _plt.figure(_num).savefig(_p, dpi=150, bbox_inches='tight')",
+		"                _fig.savefig(_p, dpi=150, bbox_inches='tight')",
 		"                print('🖼  guardada ->', _p)",
 		"            except Exception as _e:",
 		"                print('no pude guardar la figura:', _e)",
-		"        return _molten_orig_flush()",
-		"    _ip = get_ipython()",
-		"    try:",
-		"        _ip.events.unregister('post_execute', _molten_orig_flush)",
-		"    except Exception:",
-		"        pass",
-		"    _ip.events.register('post_execute', _molten_flush)",
-		"    _bi.flush_figures = _molten_flush",
+		-- Cerramos todo: replica el close_figures=True que anulamos y evita que
+		-- la próxima celda re-muestre las figuras viejas (doble render).
+		"        _plt.close('all')",
+		-- Se registra AL FINAL de post_execute → corre DESPUÉS de flush_figures,
+		-- que ya mostró la figura inline pero (con close_figures=False) no la cerró.
+		"    get_ipython().events.register('post_execute', _molten_autosave)",
+		"    _bi._molten_autosave = _molten_autosave",
 		"    _bi._molten_patched = True",
 		"    print('✓ AUTOGUARDADO de figuras ACTIVADO ->', _bi._molten_dir)",
 		"else:",
+		-- Ya parcheado: solo actualizamos destino/prefijo (p.ej. cambiaste de
+		-- notebook sin reiniciar el kernel).
 		"    print('✓ Autoguardado ya activo. Carpeta ->', _bi._molten_dir)",
 	}
 	if molten_run_block(code) then

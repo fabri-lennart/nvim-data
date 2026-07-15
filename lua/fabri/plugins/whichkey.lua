@@ -49,7 +49,8 @@ return {
 				-- ---------- Jupyter / celdas (Molten): iconografía + guía en el popup ----------
 				-- Flujo: <leader>ji (kernel) → cursor en celda → <leader>jc (ejecutar).
 				-- Texto sale como virt-text bajo la celda; los plots en <leader>jo.
-				{ "<leader>ji", desc = "Iniciar/elegir kernel (1º de todo)", icon = "" },
+				{ "<leader>ji", desc = "Iniciar kernel (venv notebooks por defecto)", icon = "" },
+				{ "<leader>jV", desc = "Crear/asegurar venv de notebooks + kernel", icon = "" },
 				{ "<leader>jk", desc = "Reiniciar kernel", icon = "" },
 				{ "<leader>jx", desc = "Interrumpir ejecución", icon = "" },
 				{ "<leader>jc", desc = "▶ Ejecutar CELDA actual (# %%)", icon = "" },

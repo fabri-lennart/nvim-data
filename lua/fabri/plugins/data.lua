@@ -183,6 +183,138 @@ local function jupyter_new_notebook()
 	end)
 end
 
+-- ─────────────────────────────────────────────────────────────────────
+-- VENV "TRADICIONAL" PARA NOTEBOOKS  (python -m venv, NO uv)
+-- ─────────────────────────────────────────────────────────────────────
+-- Filosofía: para scripts / desarrollo de software usás `uv`. Para
+-- notebooks querés un venv CLÁSICO y aislado que NO ensucie el Python del
+-- sistema (así no instalás "miles de cosas" que lo vuelvan frágil).
+--
+-- Creamos UN venv central reutilizable en  ~/.venvs/notebooks , le
+-- instalamos el stack de datos + ipykernel, y registramos su kernel en
+-- Jupyter con el nombre "notebooks". A partir de ahí, <leader>ji lo toma
+-- POR DEFECTO (sin menú) mientras exista. Recrearlo es idempotente.
+--
+--   <leader>jV  → crear/asegurar el venv + kernel (async, no congela nvim)
+--   <leader>ji  → arrancar Molten tomando el kernel "notebooks" por defecto
+-- ─────────────────────────────────────────────────────────────────────
+local NB_VENV_DIR = vim.fn.expand("~/.venvs/notebooks")
+local NB_KERNEL_NAME = "notebooks"
+local NB_KERNEL_DISPLAY = "Python (notebooks)"
+-- Stack de datos típico. Editá esta lista si querés otro set por defecto.
+local NB_PACKAGES = {
+	"ipykernel", -- imprescindible: es lo que hace que sea un "kernel"
+	"pandas",
+	"numpy",
+	"matplotlib",
+	"seaborn",
+	"scikit-learn",
+	"polars",
+}
+
+-- Comilla-simple segura para pasar rutas/nombres a `sh -c`.
+local function shq(s)
+	return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
+end
+
+-- ¿El kernel "notebooks" ya está registrado en Jupyter?
+local function nb_kernel_exists()
+	local out = vim.fn.system({ "jupyter", "kernelspec", "list", "--json" })
+	if vim.v.shell_error ~= 0 then
+		return false
+	end
+	local ok, data = pcall(vim.json.decode, out)
+	if not ok or type(data) ~= "table" or type(data.kernelspecs) ~= "table" then
+		return false
+	end
+	return data.kernelspecs[NB_KERNEL_NAME] ~= nil
+end
+
+-- Arranca Molten tomando el kernel de notebooks POR DEFECTO.
+-- Si aún no existe, cae al MoltenInit normal (menú de kernels).
+local function molten_init_default()
+	if nb_kernel_exists() then
+		vim.cmd("MoltenInit " .. NB_KERNEL_NAME)
+	else
+		vim.notify("No existe el kernel «notebooks» todavía. Crealo con <leader>jV.", vim.log.levels.WARN)
+		vim.cmd("MoltenInit") -- menú normal como fallback
+	end
+end
+
+-- Crea (si falta) el venv de notebooks, instala el stack y registra el
+-- kernel. Idempotente: si el venv ya existe, solo re-asegura el kernel.
+-- Todo async vía jobstart para no bloquear el editor.
+local function notebook_venv_setup()
+	local py = NB_VENV_DIR .. "/bin/python"
+	local exists = vim.fn.executable(py) == 1
+
+	local cmd
+	if exists then
+		-- Solo (re)registrar el kernel — barato e idempotente.
+		cmd = table.concat({
+			shq(py),
+			"-m ipykernel install --user",
+			"--name " .. shq(NB_KERNEL_NAME),
+			"--display-name " .. shq(NB_KERNEL_DISPLAY),
+		}, " ")
+		vim.notify("venv de notebooks ya existe → re-asegurando kernel…", vim.log.levels.INFO)
+	else
+		local pkgs = {}
+		for _, p in ipairs(NB_PACKAGES) do
+			table.insert(pkgs, shq(p))
+		end
+		cmd = table.concat({
+			"python3 -m venv " .. shq(NB_VENV_DIR),
+			shq(py) .. " -m pip install --upgrade pip",
+			shq(py) .. " -m pip install " .. table.concat(pkgs, " "),
+			shq(py)
+				.. " -m ipykernel install --user --name "
+				.. shq(NB_KERNEL_NAME)
+				.. " --display-name "
+				.. shq(NB_KERNEL_DISPLAY),
+		}, " && ")
+		vim.notify(
+			"Creando venv de notebooks en " .. NB_VENV_DIR .. "\n(instalando stack de datos; puede tardar 1-2 min)…",
+			vim.log.levels.INFO
+		)
+	end
+
+	local errbuf = {}
+	vim.fn.jobstart({ "sh", "-c", cmd }, {
+		on_stdout = function(_, d)
+			if d then
+				vim.list_extend(errbuf, d)
+			end
+		end,
+		on_stderr = function(_, d)
+			if d then
+				vim.list_extend(errbuf, d)
+			end
+		end,
+		on_exit = function(_, code)
+			vim.schedule(function()
+				if code == 0 then
+					vim.notify(
+						"✓ venv de notebooks listo. Kernel «"
+							.. NB_KERNEL_DISPLAY
+							.. "» registrado.\nArrancalo con <leader>ji (lo toma por defecto).",
+						vim.log.levels.INFO
+					)
+				else
+					local lines = vim.tbl_filter(function(l)
+						return l ~= ""
+					end, errbuf)
+					local tail = table.concat(lines, "\n")
+					vim.notify(
+						"✗ Falló el setup del venv (code " .. code .. "):\n" .. tail:sub(-900),
+						vim.log.levels.ERROR
+					)
+				end
+			end)
+		end,
+	})
+end
+
 return {
 
 	-- =====================
@@ -400,6 +532,13 @@ return {
 			vim.keymap.set("n", "<leader>jN", jupyter_new_notebook, {
 				desc = "Jupyter: NUEVO notebook (.ipynb) + elegir kernel",
 			})
+
+			-- Atajo global para crear/asegurar el venv "tradicional" de
+			-- notebooks (~/.venvs/notebooks) + su kernel. Disponible en
+			-- cualquier buffer (no depende de que molten esté cargado).
+			vim.keymap.set("n", "<leader>jV", notebook_venv_setup, {
+				desc = "Jupyter: crear/asegurar venv de notebooks + kernel",
+			})
 		end,
 	},
 
@@ -441,7 +580,7 @@ return {
 		end,
 		keys = {
 			-- Kernel
-			{ "<leader>ji", "<cmd>MoltenInit<cr>", desc = "Molten: iniciar/elegir kernel" },
+			{ "<leader>ji", molten_init_default, desc = "Molten: iniciar kernel (venv notebooks por defecto)" },
 			{ "<leader>jk", "<cmd>MoltenRestart!<cr>", desc = "Molten: reiniciar kernel" },
 			{ "<leader>jx", "<cmd>MoltenInterrupt<cr>", desc = "Molten: interrumpir ejecución" },
 			-- Ejecutar

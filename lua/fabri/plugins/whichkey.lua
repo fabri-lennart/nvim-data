@@ -33,6 +33,8 @@ return {
 				{ "<leader>a", group = "ai", icon = "󰚩" },
 				{ "<leader>e", group = "explorer", icon = "" },
 				{ "<leader>u", group = "ui / toggles", icon = "" },
+				{ "<leader>uc", desc = "Cambiar tema (colorscheme)", icon = "" },
+				{ "<leader>ut", desc = "Toggle transparencia", icon = "" },
 
 				-- ---------- Debug: iconografía explícita para el popup ----------
 				{ "<leader>dt", desc = "Toggle breakpoint", icon = "" },

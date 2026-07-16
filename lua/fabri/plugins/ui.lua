@@ -1,8 +1,13 @@
 return {
 
 	-- =====================
-	-- COLORSCHEME (Nord)
+	-- COLORSCHEMES + THEME MANAGER
+	-- Los temas solo se REGISTRAN aquí (setup); la carga, el cambio entre
+	-- temas y la transparencia los gestiona lua/fabri/core/theme.lua.
+	--   <leader>uc → cambiar tema   |   <leader>ut → toggle transparencia
 	-- =====================
+
+	-- Nordic (registrado, disponible en el selector)
 	{
 		"AlexvZyl/nordic.nvim",
 		priority = 1000,
@@ -21,61 +26,29 @@ return {
 				},
 				telescope = { style = "flat" },
 			})
-			require("nordic").load()
+		end,
+	},
 
-			-- ---------------------------------------------------------------
-			-- Transparency toggle
-			-- Hot-swaps the editor background on/off. Theme-agnostic: it strips
-			-- the background from the relevant highlight groups while keeping
-			-- foregrounds intact, and reloads Nord to restore the original look.
-			-- ---------------------------------------------------------------
-			local transparent = false
+	-- Gruvbox (tema activo por defecto). Carga después de Nordic para que
+	-- ambos queden registrados antes de aplicar el tema por defecto.
+	{
+		"ellisonleao/gruvbox.nvim",
+		priority = 1000,
+		dependencies = { "AlexvZyl/nordic.nvim" },
+		config = function()
+			require("gruvbox").setup({
+				contrast = "hard",
+				bold = true,
+				italic = {
+					strings = false,
+					comments = true,
+					folds = true,
+				},
+				transparent_mode = false,
+			})
 
-			local groups = {
-				"Normal",
-				"NormalNC",
-				"NormalFloat",
-				"FloatBorder",
-				"SignColumn",
-				"EndOfBuffer",
-				"MsgArea",
-				"LineNr",
-				"CursorLineNr",
-				"NeoTreeNormal",
-				"NeoTreeNormalNC",
-				"NeoTreeEndOfBuffer",
-				"TelescopeNormal",
-				"TelescopeBorder",
-				"WhichKeyFloat",
-			}
-
-			local function set_transparency(enabled)
-				transparent = enabled
-				if enabled then
-					for _, g in ipairs(groups) do
-						local hl = vim.api.nvim_get_hl(0, { name = g, link = false })
-						hl.bg = nil
-						hl.ctermbg = nil
-						hl.link = nil
-						vim.api.nvim_set_hl(0, g, hl)
-					end
-				else
-					-- Reload Nord to restore every original background
-					require("nordic").load()
-				end
-			end
-
-			vim.api.nvim_create_user_command("ToggleTransparency", function()
-				set_transparency(not transparent)
-				vim.notify("Transparency " .. (transparent and "ON" or "OFF"), vim.log.levels.INFO)
-			end, { desc = "Toggle background transparency" })
-
-			vim.keymap.set(
-				"n",
-				"<leader>ut",
-				"<cmd>ToggleTransparency<cr>",
-				{ noremap = true, silent = true, desc = "Toggle transparency" }
-			)
+			-- Registra comandos/keymaps de temas y aplica el tema por defecto.
+			require("fabri.core.theme").setup()
 		end,
 	},
 
@@ -88,7 +61,7 @@ return {
 		config = function()
 			require("lualine").setup({
 				options = {
-					theme = "nordic",
+					theme = "auto",
 					component_separators = "|",
 					section_separators = { left = "", right = "" },
 					globalstatus = true,

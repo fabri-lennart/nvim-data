@@ -36,24 +36,9 @@ return {
 			"b0o/schemastore.nvim", -- catálogo de JSON/YAML schemas (k8s, compose, GH Actions, etc.)
 		},
 		config = function()
-			require("mason-lspconfig").setup({
-				ensure_installed = {
-					"gh_actions_ls", -- GitHub Actions
-					"pyright", -- Python (ETL / DAGs de Airflow)
-					"gopls", -- Go
-					"ts_ls", -- JavaScript / TypeScript
-					"eslint", -- JavaScript / TypeScript linting
-					"html", -- Web markup
-					"cssls", -- Web styles
-					"lua_ls", -- Lua
-					"dockerls", -- Dockerfile
-					"yamlls", -- YAML (Kubernetes, docker-compose, dbt)
-					"jsonls", -- JSON
-					"terraformls", -- Terraform / GCP
-					"helm_ls", -- Helm charts (plantillas K8s)
-					"bashls", -- Bash scripting
-				},
-				automatic_installation = true,
+				require("mason-lspconfig").setup({
+				ensure_installed = {},
+				automatic_installation = false,
 			})
 
 			local schemastore = require("schemastore")

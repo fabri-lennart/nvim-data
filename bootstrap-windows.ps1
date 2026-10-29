@@ -86,12 +86,14 @@ if ($LASTEXITCODE -ne 0) { throw 'goimports installation failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Neovim plugin sync failed' }
 & nvim --headless '+UpdateRemotePlugins' '+qa'
 if ($LASTEXITCODE -ne 0) { throw 'Neovim Python plugin registration failed' }
-& nvim --headless '+MasonInstall js-debug-adapter' '+lua vim.wait(120000, function() return require("mason-registry").is_installed("js-debug-adapter") end, 1000)' '+qa'
-if ($LASTEXITCODE -ne 0) { throw 'JavaScript debug adapter installation failed' }
 $jsAdapter = Join-Path $dataDir 'mason\packages\js-debug-adapter\js-debug\src\dapDebugServer.js'
+if (-not (Test-Path -LiteralPath $jsAdapter)) {
+    & nvim --headless '+MasonInstall js-debug-adapter' '+lua vim.wait(120000, function() return require([[mason-registry]]).is_installed([[js-debug-adapter]]) end, 1000)' '+qa'
+    if ($LASTEXITCODE -ne 0) { throw 'JavaScript debug adapter installation failed' }
+}
 if (-not (Test-Path -LiteralPath $jsAdapter)) { throw 'JavaScript debug adapter file is missing' }
 
-$check = & nvim --headless '+lua print("CONFIG=" .. vim.fn.stdpath("config") .. " THEME=" .. tostring(vim.g.colors_name))' '+qa' 2>&1
+$check = & nvim --headless '+lua print([[CONFIG=]] .. vim.fn.stdpath([[config]]) .. [[ THEME=]] .. tostring(vim.g.colors_name))' '+qa' 2>&1
 if (($check -join "`n") -notmatch 'THEME=kanagawa') { throw "Neovim verification failed: $check" }
 Write-Host 'Neovim is ready. Restart Nushell, then run nvim.'
 Write-Host 'Run gcloud init separately to sign in and select a Google Cloud project.'

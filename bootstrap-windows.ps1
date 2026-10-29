@@ -93,7 +93,7 @@ if (-not (Test-Path -LiteralPath $jsAdapter)) {
 }
 if (-not (Test-Path -LiteralPath $jsAdapter)) { throw 'JavaScript debug adapter file is missing' }
 
-$check = & nvim --headless '+lua print([[CONFIG=]] .. vim.fn.stdpath([[config]]) .. [[ THEME=]] .. tostring(vim.g.colors_name))' '+qa' 2>&1
-if (($check -join "`n") -notmatch 'THEME=kanagawa') { throw "Neovim verification failed: $check" }
+& nvim --headless '+lua if vim.g.colors_name ~= [[kanagawa]] or vim.fn.stdpath([[config]]) ~= vim.env.LOCALAPPDATA .. [[\nvim]] then vim.cmd([[cquit 1]]) end' '+qa'
+if ($LASTEXITCODE -ne 0) { throw 'Neovim config or Kanagawa verification failed' }
 Write-Host 'Neovim is ready. Restart Nushell, then run nvim.'
 Write-Host 'Run gcloud init separately to sign in and select a Google Cloud project.'

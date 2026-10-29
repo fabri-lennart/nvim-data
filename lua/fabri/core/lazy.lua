@@ -32,7 +32,7 @@ require("lazy").setup({
     enabled = false,
   },
   install = {
-    colorscheme = { "gruvbox", "nordic", "habamax" },
+    colorscheme = { "kanagawa-wave", "gruvbox", "nordic", "habamax" },
   },
   checker = {
     enabled = true,

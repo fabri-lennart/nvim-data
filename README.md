@@ -17,6 +17,14 @@ No distributions, no abstractions — just Lua.
 - pip install black debugpy sqlfmt
 - Go: `go`, `gopls`, `dlv`, `goimports`
 - JavaScript/TypeScript: `node`, `typescript-language-server`, `prettier`, and Mason's `js-debug-adapter`
+- Google Cloud: Google Cloud CLI (`gcloud` and `bq`); run `gcloud init` to choose your project
+
+## Theme and data validation
+
+- Kanagawa Wave is the default theme. Use `<leader>uk` to toggle Kanagawa/Gruvbox or `<leader>uc` to select a theme.
+- JSON and YAML use language-server schema validation; CSV/TSV can be inspected with `<leader>cs`.
+- In a SQL buffer, `<leader>Gv` runs a BigQuery dry run to validate the query without executing it.
+- `<leader>Gp` lists Google Cloud projects; `<leader>Gc` shows the active CLI configuration.
 
 ## Go and JavaScript debugging
 

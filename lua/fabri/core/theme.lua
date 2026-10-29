@@ -13,13 +13,15 @@ local M = {}
 
 -- Temas disponibles en el selector. `bg` fija vim.o.background antes de cargar.
 M.themes = {
+	{ label = "Kanagawa — wave", scheme = "kanagawa-wave", bg = "dark" },
+	{ label = "Kanagawa — dragon", scheme = "kanagawa-dragon", bg = "dark" },
 	{ label = "Gruvbox — dark", scheme = "gruvbox", bg = "dark" },
 	{ label = "Gruvbox — light", scheme = "gruvbox", bg = "light" },
 	{ label = "Nordic", scheme = "nordic", bg = "dark" },
 }
 
 -- Tema por defecto al arrancar (debe coincidir con un `label` de arriba).
-M.default = "Gruvbox — dark"
+M.default = "Kanagawa — wave"
 
 -- Estado de la transparencia (fondo del editor apagado para ver la terminal).
 M.transparent = false
@@ -91,6 +93,14 @@ function M.pick()
 	end)
 end
 
+function M.toggle_kanagawa_gruvbox()
+	if vim.g.colors_name == "kanagawa" then
+		M.set("gruvbox", "dark")
+	else
+		M.set("kanagawa-wave", "dark")
+	end
+end
+
 -- Alterna la transparencia del fondo (para que se vea la terminal detrás).
 function M.toggle_transparency()
 	M.transparent = not M.transparent
@@ -116,6 +126,11 @@ function M.setup()
 		noremap = true,
 		silent = true,
 		desc = "Cambiar tema",
+	})
+	vim.keymap.set("n", "<leader>uk", M.toggle_kanagawa_gruvbox, {
+		noremap = true,
+		silent = true,
+		desc = "Alternar Kanagawa / Gruvbox",
 	})
 	vim.keymap.set("n", "<leader>ut", M.toggle_transparency, {
 		noremap = true,

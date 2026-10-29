@@ -5,4 +5,5 @@
 
 require("fabri.core.options")
 require("fabri.core.keymaps")
+require("fabri.core.cloud")
 require("fabri.core.lazy") 

@@ -1,4 +1,12 @@
 return {
+	{
+		"rebelot/kanagawa.nvim",
+		priority = 1100,
+		config = function()
+			require("kanagawa").setup({ theme = "wave", background = { dark = "wave" } })
+			require("fabri.core.theme").setup()
+		end,
+	},
 
 	-- =====================
 	-- COLORSCHEMES + THEME MANAGER
@@ -34,7 +42,7 @@ return {
 	{
 		"ellisonleao/gruvbox.nvim",
 		priority = 1000,
-		dependencies = { "AlexvZyl/nordic.nvim" },
+		dependencies = { "AlexvZyl/nordic.nvim", "rebelot/kanagawa.nvim" },
 		config = function()
 			require("gruvbox").setup({
 				contrast = "hard",
@@ -48,7 +56,6 @@ return {
 			})
 
 			-- Registra comandos/keymaps de temas y aplica el tema por defecto.
-			require("fabri.core.theme").setup()
 		end,
 	},
 

@@ -11,6 +11,15 @@ opt.shiftwidth = 2
 opt.expandtab = true
 opt.autoindent = true
 
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "go", "gomod", "gowork" },
+  callback = function()
+    vim.opt_local.expandtab = false
+    vim.opt_local.tabstop = 4
+    vim.opt_local.shiftwidth = 4
+  end,
+})
+
 -- Search
 opt.ignorecase = true
 opt.smartcase = true

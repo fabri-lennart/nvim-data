@@ -41,6 +41,10 @@ return {
 					"gh_actions_ls", -- GitHub Actions
 					"pyright", -- Python (ETL / DAGs de Airflow)
 					"gopls", -- Go
+					"ts_ls", -- JavaScript / TypeScript
+					"eslint", -- JavaScript / TypeScript linting
+					"html", -- Web markup
+					"cssls", -- Web styles
 					"lua_ls", -- Lua
 					"dockerls", -- Dockerfile
 					"yamlls", -- YAML (Kubernetes, docker-compose, dbt)
@@ -159,6 +163,10 @@ return {
 				"gh_actions_ls",
 				"pyright",
 				"gopls",
+				"ts_ls",
+				"eslint",
+				"html",
+				"cssls",
 				"lua_ls",
 				"dockerls",
 				"yamlls",
@@ -265,6 +273,13 @@ return {
 				formatters_by_ft = {
 					-- Ruff: ordena imports y luego formatea (reemplaza a black + isort)
 					python = { "ruff_organize_imports", "ruff_format" },
+					go = { "goimports", "gofmt" },
+					javascript = { "prettier" },
+					javascriptreact = { "prettier" },
+					typescript = { "prettier" },
+					typescriptreact = { "prettier" },
+					css = { "prettier" },
+					html = { "prettier" },
 					lua = { "stylua" },
 					sql = { "sqlfmt" },
 					sh = { "shfmt" },

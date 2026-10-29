@@ -34,6 +34,51 @@ return {
 			end, d("Log point"))
 			map("n", "<leader>dr", dap.repl.open, d("Abrir REPL / consola"))
 			map("n", "<leader>dx", dap.terminate, d("Terminar sesión"))
+
+			local dap = require("dap")
+			local adapter = vim.fn.stdpath("data") .. "/mason/packages/js-debug-adapter/js-debug/src/dapDebugServer.js"
+			if not vim.uv.fs_stat(adapter) then
+				vim.notify("Install js-debug-adapter with :MasonInstall js-debug-adapter", vim.log.levels.WARN)
+				return
+			end
+			for _, name in ipairs({ "pwa-node", "pwa-chrome" }) do
+				dap.adapters[name] = {
+					type = "server",
+					host = "127.0.0.1",
+					port = "${port}",
+					executable = { command = "node", args = { adapter, "${port}" } },
+				}
+			end
+			local node_configs = {
+				{
+					type = "pwa-node",
+					request = "launch",
+					name = "Node: debug current file",
+					program = "${file}",
+					cwd = "${workspaceFolder}",
+					console = "integratedTerminal",
+					sourceMaps = true,
+				},
+				{
+					type = "pwa-node",
+					request = "attach",
+					name = "Node: attach to process",
+					processId = require("dap.utils").pick_process,
+					cwd = "${workspaceFolder}",
+				},
+				{
+					type = "pwa-chrome",
+					request = "launch",
+					name = "Browser: debug local app",
+					url = function() return vim.fn.input("Local app URL: ", "http://localhost:3000") end,
+					webRoot = "${workspaceFolder}",
+					sourceMaps = true,
+				},
+			}
+			dap.configurations.javascript = node_configs
+			dap.configurations.javascriptreact = node_configs
+			dap.configurations.typescript = node_configs
+			dap.configurations.typescriptreact = node_configs
 		end,
 	},
 
@@ -118,7 +163,7 @@ return {
 		dependencies = { "mfussenegger/nvim-dap" },
 		ft = "go",
 		config = function()
-			require("dap-go").setup()
+			require("dap-go").setup({ delve = { path = vim.fn.exepath("dlv") } })
 
 			vim.keymap.set(
 				"n",

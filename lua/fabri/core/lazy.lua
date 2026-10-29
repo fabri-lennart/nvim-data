@@ -28,6 +28,9 @@ require("lazy").setup({
   defaults = {
     lazy = false,
   },
+  rocks = {
+    enabled = false,
+  },
   install = {
     colorscheme = { "gruvbox", "nordic", "habamax" },
   },

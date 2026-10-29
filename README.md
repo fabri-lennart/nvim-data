@@ -2,12 +2,12 @@
 
 Personal Neovim IDE for data engineering.
 
-Built from scratch for working with Python, SQL, dbt, Terraform, Docker and Go.
+Built from scratch for working with Go, JavaScript/TypeScript, Python, SQL, dbt, Terraform and Docker.
 No distributions, no abstractions — just Lua.
 
 ## Stack
 - **Editor**: Neovim 0.11+
-- **Languages**: Python · SQL · Go · Terraform · Bash · YAML
+- **Languages**: Go · JavaScript/TypeScript · HTML/CSS · Python · SQL · Terraform · Bash · YAML
 - **Database**: DuckDB · Snowflake · Postgres (via dadbod)
 - **AI**: Claude (via codecompanion)
 
@@ -15,6 +15,15 @@ No distributions, no abstractions — just Lua.
 - Neovim 0.11+
 - git · lazygit · lazydocker · yazi
 - pip install black debugpy sqlfmt
+- Go: `go`, `gopls`, `dlv`, `goimports`
+- JavaScript/TypeScript: `node`, `typescript-language-server`, `prettier`, and Mason's `js-debug-adapter`
+
+## Go and JavaScript debugging
+
+- Open a Go file and press `<F5>` to launch Delve, or `<leader>dT` to debug the current test.
+- Open a JavaScript/TypeScript file and press `<F5>` to choose a Node launch, Node attach, or local browser session.
+- Use `<leader>dt` for breakpoints, `<F10>` to step over, `<F11>` to step in, and `<F12>` to step out.
+- Go files use tabs and `goimports` on save. JavaScript, TypeScript, HTML, and CSS use Prettier on save.
 
 ### Notebooks / Jupyter (Molten)
 - Kernel:   `pip install pynvim jupyter_client ipykernel jupytext`

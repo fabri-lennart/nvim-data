@@ -797,6 +797,7 @@ return {
 	-- =====================
 	{
 		"3rd/image.nvim",
+		build = false,
 		ft = { "python", "markdown" },
 		opts = {
 			backend = "kitty",

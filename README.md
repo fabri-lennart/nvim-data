@@ -1,5 +1,9 @@
 # nvim-data
 
+## Windows setup
+
+With a GitHub SSH key configured, run `powershell -ExecutionPolicy Bypass -File .\bootstrap-windows.ps1` from this checkout. The script installs Neovim and its Go, JavaScript, Python, search, and Google Cloud tools, syncs plugins, and verifies Kanagawa. It clones or updates the repo at `%LOCALAPPDATA%\nvim` and leaves `%LOCALAPPDATA%\nvim-data` for plugin data. Run `gcloud init` separately for your own account.
+
 Personal Neovim IDE for data engineering.
 
 Built from scratch for working with Go, JavaScript/TypeScript, Python, SQL, dbt, Terraform and Docker.

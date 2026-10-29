@@ -741,8 +741,11 @@ return {
 		"iamcco/markdown-preview.nvim",
 		cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
 		ft = { "markdown" },
-		build = function()
-			vim.fn["mkdp#util#install"]()
+		build = function(plugin)
+			local result = vim.system({ "npm.cmd", "install" }, { cwd = plugin.dir .. "/app", text = true }):wait()
+			if result.code ~= 0 then
+				error(result.stderr or result.stdout or "npm install failed")
+			end
 		end,
 		keys = {
 			{ "<leader>mp", "<cmd>MarkdownPreviewToggle<cr>", ft = "markdown", desc = "Markdown: toggle preview" },
